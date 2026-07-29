@@ -5,6 +5,9 @@
   "bin": {
     "combo-maestro": "./bin/combo-maestro.js"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "files": [
     "bin/",
     "src/",
