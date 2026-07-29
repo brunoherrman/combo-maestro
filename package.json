@@ -1,0 +1,31 @@
+{
+  "name": "@brunoherrman/combo-maestro",
+  "version": "0.9.2",
+  "description": "Complemento do Orquestrador Maestro: delegacao de bracal cheap-tier, curadoria de worklog human-in-the-loop, stale-process gate e budget report. Aditivo e marcado; auto-aposenta quando o nucleo absorver.",
+  "bin": {
+    "combo-maestro": "./bin/combo-maestro.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "templates/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --check bin/combo-maestro.js && node --test tests/cli.test.js && node bin/combo-maestro.js --help"
+  },
+  "keywords": [
+    "orquestrador",
+    "maestro",
+    "worklog",
+    "gate",
+    "delegation",
+    "bracal",
+    "cheap-tier"
+  ],
+  "author": "Bruno Herrman",
+  "license": "MIT"
+}
