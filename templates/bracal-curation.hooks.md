@@ -4,8 +4,8 @@
 
 ### Budget (inicio de sessao)
 
-- `combo-maestro budget --project-path <project>` no inicio de trabalho longo; reporte 1 linha.
-- WORKLOG acima de ~3000 tokens: ofereca a curadoria, nao rode sozinho.
+- Use `orquestrador-maestro context brief --project-path <abs> --max-chars 1200` (o combo aposentou o `budget`; passe caminho ABSOLUTO).
+- WORKLOG grande: ofereca a curadoria, nao rode sozinho.
 
 ### Curadoria de worklog (human-in-the-loop)
 

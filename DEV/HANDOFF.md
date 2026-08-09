@@ -1,26 +1,28 @@
-# HANDOFF
+# Active Handoff
 
-## Estado atual
+This file should stay small. Refresh it after substantive work or run `orquestrador-maestro compact-worklog`.
 
-- Núcleo Orquestrador no `Unreleased` de 2026-07-28 (GitHub main, commit `8910530`). Caminho: `npm update -g` (0.1.2 -> 0.1.12), depois clone + `scripts/install.ps1 -InstallToolProfiles -Force`.
-- `PERSISTENCE.md` instalado e citado nos 5 entrypoints. Os verificadores do núcleo agora exigem isso — `-InstallToolProfiles` é obrigatório.
-- combo-maestro **0.9.2**: bloco de hooks cabe no limite de 80 linhas; bloco de session-start delega a ordem de leitura ao `PERSISTENCE.md` com fallback; guard de orçamento em `install`/`verify`; 6 testes passando.
-- `verify-install.ps1` do main passou; `doctor` com `IssueCount: 0`, zero `Healthy: false`.
-- Blocos COMBO reinjetados e verificados.
+## Snapshot
 
-## Próximo passo
+- Updated: 2026-08-09
+- Read order: `INDEX.md` -> `HANDOFF.md` -> `CONTEXT.md` -> `SPECS/ACTIVE.md`
+- Active spec: `SPECS/ACTIVE.md`
+- Verification source: `VERIFY.md`
+- Worklog archive: `HANDOFFS/WORKLOG_ARCHIVE.md`
 
-- Publicar combo 0.9.2 no npm quando desejado (`npm publish`) — usuário valida.
-- Quando o `Unreleased` virar release no npm, trocar o install-from-clone por `npm update -g`.
-- Avaliar a RFC 0002 (`ai-memory` como provider opcional) quando sair de proposta. Hoje `DEV/` é fonte de verdade e o combo não precisa mudar.
-- Ampliar testes para broker `grok`, `curate`, `budget` e `stale-check` (cobertura ainda indireta).
+## Latest Work
 
-## Margem apertada
+- Entry: 2026-08-09 - aposentadoria parcial e correção de injeção de shell
+- Spec: aplicar as decisões sobre `init-entrypoint` e `budget` diante da absorção pelo núcleo 0.1.19
+- Changed: `init-entrypoint` delega o `DEV/` ao `init-dev` do núcleo; `budget` aposentado apontando `context brief`; ordem do entrypoint alinhada ao `PERSISTENCE.md`; args de shell pré-quotados em `delegate` e `init-entrypoint`
+- Verified: `npm test` 8/8; projeto gerado pelo `init-entrypoint` passa no `check-dev-gates`; `combo-maestro verify` e `orquestrador-maestro verify` passaram; `doctor` com `IssueCount: 0`
+- Risks: `shellQuote` cobre cmd.exe e sh POSIX, não PowerShell como shell padrão; `curate` e `stale-check` sem cobertura dedicada
+- Next context: reportar ao Bolzan o bug de `--project-path` relativo no 0.1.19; avaliar publicar 0.10.0
 
-`hooks.md` está em 76/80 linhas. Qualquer linha nova no bloco COMBO de hooks precisa remover outra. `combo-maestro install` avisa e `verify` falha antes do gate do núcleo.
+## Recent Entries
 
-## Armadilhas conhecidas
-
-- Reinstalar o núcleo **sempre** apaga os blocos COMBO. Rode `combo-maestro install` + `verify` depois.
-- O clone do repositório precisa de `git clone -c core.longpaths=true`; sem isso os schemas ooxml das skills docx/pptx estouram o limite de path do Windows.
-- `scripts/install.ps1` exige `-Force` para sobrescrever um `.orquestrador` existente. Ele faz backup próprio em `~/.orquestrador-public-backups/<timestamp>`.
+- 2026-08-09 - aposentadoria de `budget`; `init-entrypoint` delega ao núcleo; fix de injeção de shell
+- 2026-08-08 - núcleo 0.1.19; DEV migrado para schema canônico
+- 2026-07-28 - núcleo no Unreleased; alinhamento com `PERSISTENCE.md`
+- 2026-07-28 - núcleo 0.1.12; gate de 80 linhas no `hooks.md`
+- 2026-07-16 - núcleo 0.1.3; broker Grok in-session

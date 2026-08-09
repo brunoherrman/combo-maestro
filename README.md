@@ -13,15 +13,28 @@ O Orquestrador Maestro já entrega o combo `spec + worklog + verify + handoff + 
 | **Delegação de braçal cheap-tier** | Regra + broker: trabalho mecânico cai no tier barato do **mesmo CLI** (Claude→Haiku, Codex→gpt-5.4-mini, Gemini→Flash), sempre por **assinatura, nunca API**, com heurística "verificável barato?" e fallback. |
 | **Curadoria human-in-the-loop** | `curate` separa o worklog em baldes e mostra o texto literal das cinzas para decisão humana. |
 | **Stale-process gate** | `stale-check` falha se o processo ou servidor rodando ficou velho em relação à fonte. |
-| **Budget report** | `budget` mostra o tamanho de contexto e worklog no início, para a inflação ficar visível cedo. |
 | **Economia de turnos** | Regra dura contra o gasto que mais dói na prática: reingestão de contexto por turno. |
 | **Cold start auto-suficiente** | Regra global de session-start e injeção de entrypoint compacto no sub frio. |
+
+Conferido contra o núcleo **0.1.19**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
+
+### Peças aposentadas
+
+O combo se autoaposenta por partes, conforme o núcleo absorve:
+
+| Peça | Substituto no núcleo | Desde |
+|---|---|---|
+| `budget` | `orquestrador-maestro context brief --project-path <abs> --max-chars N` | 0.1.14 / 0.1.18 |
+| skeletons de `DEV/` do `init-entrypoint` | `orquestrador-maestro init-dev` (o `init-entrypoint` agora delega a ele) | 0.1.18 |
+| ordem de leitura no session-start | `~/.orquestrador/PERSISTENCE.md` | Unreleased 2026-07-28 |
+
+`combo-maestro budget` continua existindo só para falhar alto e apontar o substituto, em vez de quebrar hooks antigos em silêncio.
 
 Princípio comum: **regras boas não podem depender de você lembrar**.
 
 ## Requisitos
 
-- **Orquestrador Maestro instalado** (testado contra o núcleo **0.1.12**)
+- **Orquestrador Maestro instalado** (testado contra o núcleo **0.1.19**)
   ```bash
   npm install -g @iapro/orquestrador-maestro-cli
   orquestrador-maestro install
@@ -80,7 +93,6 @@ combo-maestro install               # injeta os blocos COMBO no .orquestrador
 combo-maestro uninstall             # remove os blocos
 combo-maestro verify                # confere que os blocos estão presentes
 
-combo-maestro budget      --project-path PATH
 combo-maestro curate      --project-path PATH [--keep N] [--apply]
 combo-maestro stale-check --project-path PATH --watch DIR [--update]
 
@@ -146,19 +158,20 @@ As travas principais são:
 
 ## Cold start auto-suficiente
 
-No modo shell-out do Codex, `delegate` pré-anexa um entrypoint compacto com:
+No modo shell-out do Codex, `delegate` pré-anexa um entrypoint compacto na ordem canônica do `PERSISTENCE.md`:
 
 - `DEV/INDEX.md`
-- `DEV/SPECS/ACTIVE.md`
 - `DEV/HANDOFF.md`
+- `DEV/CONTEXT.md`
+- `DEV/SPECS/ACTIVE.md`
 
-`init-entrypoint` é opcional e cria o esqueleto `DEV/` quando o projeto ainda não tem essa estrutura.
+`init-entrypoint` é opcional. Ele **delega a hierarquia `DEV/` ao `orquestrador-maestro init-dev`** — por isso o projeto gerado passa no `check-dev-gates --strict` — e acrescenta só o ponteiro ENTRYPOINT no topo do `AGENTS.md`, sem mover o corpo.
 
 ## Como pluga no Orquestrador
 
 - regra de delegação de braçal → bloco marcado em `rules.md`
 - regra de economia de turnos → mesmo bloco marcado em `rules.md`
-- hooks de budget, curadoria e stale → bloco marcado em `hooks.md`
+- hooks de curadoria e stale → bloco marcado em `hooks.md`
 - profile do braçal → `[profiles.bracal]` marcado no `~/.codex/config.toml`
 
 ## Descontinuação

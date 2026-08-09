@@ -1,26 +1,47 @@
-# SPEC ATIVA
+# Active Spec - combo-maestro
 
-Status: concluída
+## Goal
 
-## Objetivo
+Atualizar o núcleo Orquestrador Maestro de 0.1.12 para 0.1.19, manter os blocos COMBO válidos e reavaliar quais peças do combo o núcleo já absorveu.
 
-Atualizar o núcleo Orquestrador Maestro de 0.1.2 até o `Unreleased` de 2026-07-28 (GitHub main) e adaptar o combo-maestro ao gate de tamanho de `hooks.md` e ao novo contrato `PERSISTENCE.md`.
+## In Scope
 
-## Critérios de aceitação
+- Atualizar a CLI do núcleo por npm e aplicar o conteúdo com `orquestrador-maestro update`.
+- Reinjetar e verificar os blocos COMBO em `rules.md` e `hooks.md`.
+- Migrar o `DEV/` do combo para os headings canônicos exigidos pelo gate estrito do núcleo 0.1.18.
+- Levantar a sobreposição entre o combo e o núcleo 0.1.19 com evidência (grep nos contratos, `--help`, execução dos comandos novos).
 
-- [x] núcleo em 0.1.12 via `npm update -g` + `orquestrador-maestro update`
-- [x] núcleo em `Unreleased` (commit `8910530`) via clone + `scripts/install.ps1 -InstallToolProfiles -Force`
-- [x] `PERSISTENCE.md` instalado e referenciado nos 5 entrypoints (claude, codex, cursor, gemini, AGENTS global)
-- [x] blocos COMBO reinjetados após cada reinstalação do núcleo
-- [x] bloco de hooks do combo encurtado (30 -> 22 linhas) para caber no limite de 80 linhas do núcleo
-- [x] bloco de session-start delega a ordem de leitura ao `PERSISTENCE.md`, com fallback quando ele não existe
-- [x] `scripts/verify-install.ps1` do main passou
-- [x] `doctor` com `IssueCount: 0`, zero `Healthy: false`, hooks 76/80
-- [x] guard de orçamento de linhas em `verify`/`install` do combo + 2 testes
-- [x] help do bin aponta o núcleo 0.1.12
-- [x] README documenta compatibilidade, limite de 80 linhas e relação com `PERSISTENCE.md`
-- [x] `npm test` passa (6/6)
+## Out Of Scope
 
-## Fora de escopo
+- Aposentar ou reescrever `init-entrypoint` e `budget`: depende de decisão do maestro.
+- Publicar o pacote no npm.
+- Adotar o perfil `phase-loop` e os `WORKFLOW_SCHEMAS.json` do núcleo.
 
-Integração opt-in com `ai-memory` (RFC 0002). `DEV/` segue fonte de verdade; nada a mudar no combo por ora.
+## Acceptance
+
+- [x] núcleo em 0.1.19 (`npm update -g` + `orquestrador-maestro update`)
+- [x] `orquestrador-maestro verify` passa
+- [x] `doctor` com `IssueCount: 0` e zero `Healthy: false`
+- [x] `combo-maestro verify` passa e `hooks.md` fica dentro de 80 linhas
+- [x] `DEV/` do combo com os headings canônicos e `DEV/README.md` presente
+- [x] `npm test` 6/6
+- [x] sobreposição com o núcleo levantada com evidência
+
+## Constraints
+
+- `hooks.md` tem 4 linhas de folga (76/80).
+- Atualizar o núcleo apaga os blocos COMBO; a reinjeção é obrigatória.
+- `check-dev-gates` do 0.1.19 só aceita `--project-path` absoluto.
+
+## Verification Plan
+
+- `orquestrador-maestro verify` e `doctor` para o núcleo.
+- `combo-maestro verify` para os blocos injetados.
+- `npm test` para a CLI do combo.
+- `orquestrador-maestro check-dev-gates --project-path <abs> --strict` para o `DEV/`.
+
+## Status
+
+- State: em andamento
+- Owner: Bruno Herrman
+- Last updated: 2026-08-08

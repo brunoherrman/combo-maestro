@@ -4,7 +4,7 @@
 const install = require("../src/install.js");
 const uninstall = require("../src/uninstall.js");
 const verify = require("../src/verify.js");
-const budget = require("../src/budget.js");
+const budgetRetired = require("../src/budget-retired.js");
 const staleCheck = require("../src/stale-check.js");
 const curate = require("../src/curate.js");
 const delegate = require("../src/delegate.js");
@@ -17,17 +17,19 @@ const VERSION = require("../package.json").version;
 function printHelp() {
   console.log(`combo-maestro ${VERSION} - complemento do Orquestrador Maestro
 
-Cobre apenas o que o nucleo (0.1.12) ainda nao faz:
+Cobre apenas o que o nucleo (0.1.19) ainda nao faz:
   - delegacao de bracal cheap-tier (regra injetada)
   - curadoria de worklog human-in-the-loop (mostra o cru, voce aprova)
   - stale-process gate (fingerprint fonte vs processo rodando)
-  - budget report (tamanho de contexto/worklog)
+  - travas de custo por turno (read-once, batch, anti-poll em job longo)
+
+Aposentado (o nucleo absorveu):
+  - budget -> orquestrador-maestro context brief
 
 Uso:
   combo-maestro install   [--home-path PATH] [--dry-run]
   combo-maestro uninstall [--home-path PATH]
   combo-maestro verify    [--home-path PATH]
-  combo-maestro budget    [--project-path PATH]
   combo-maestro stale-check [--project-path PATH] [--watch DIR] [--update]
   combo-maestro curate    [--project-path PATH] [--keep N]
   combo-maestro setup-bracal [--cli codex] [--model gpt-5.4-mini]
@@ -52,10 +54,11 @@ Delegacao de bracal (ASSINATURA, nunca API):
     Nunca injeta no modo API (mimo).
 
 Cold start auto-suficiente (sem lembrar comando por sessao):
-  init-entrypoint prepara o projeto. ADITIVO: cria DEV/INDEX, SPECS/ACTIVE,
-    HANDOFF e VERIFY se faltarem e poe um ponteiro no topo do AGENTS.md
-    (entre marcadores), SEM mover o corpo. Cold start de Codex/Claude/OpenCode
-    passa a ler o contrato compacto.
+  init-entrypoint prepara o projeto. A hierarquia DEV/ vem do nucleo (delega a
+    'orquestrador-maestro init-dev'), entao passa no 'check-dev-gates --strict'.
+    O combo so acrescenta o ponteiro no topo do AGENTS.md (entre marcadores),
+    SEM mover o corpo. Cold start de Codex/Claude/OpenCode passa a ler o
+    contrato compacto.
 
 Notas:
   - install e aditivo e idempotente. So escreve entre marcadores
@@ -140,7 +143,7 @@ function main() {
       verify(options);
       return;
     case "budget":
-      budget(options);
+      budgetRetired(options);
       return;
     case "stale-check":
       staleCheck(options);

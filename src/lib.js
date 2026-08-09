@@ -80,6 +80,32 @@ function estimateTokens(text) {
   return Math.ceil(text.length / 4);
 }
 
+// Node refuses to spawn a Windows .cmd shim (npm installs CLIs as .cmd) without
+// shell:true, and with shell:true it concatenates argv instead of escaping it.
+// So we quote here: an unquoted `&` or `|` in a task string or project path
+// would otherwise run as a second command.
+function shellQuote(value) {
+  const text = String(value);
+  if (process.platform === "win32") {
+    // Inside cmd.exe double quotes, &, |, <, > and spaces lose their meaning.
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return `'${text.replace(/'/g, `'\\''`)}'`;
+}
+
+// Only quote when the shell is actually involved; otherwise argv is passed
+// through verbatim and quoting would become part of the argument.
+function shellSafeArgs(args, useShell) {
+  return useShell ? args.map(shellQuote) : args;
+}
+
+// Node deprecates (DEP0190) passing an args array alongside shell:true, because
+// it concatenates without escaping. The supported shape is one pre-quoted
+// command line, which is what this returns for the shell case.
+function shellCommandLine(cmd, args) {
+  return [cmd, ...args.map(shellQuote)].join(" ");
+}
+
 // The core verifier (>=0.1.12) rejects a hooks.md over this many lines. The COMBO
 // block shares that budget, so keep it small enough for core `verify` to pass.
 const HOOKS_MAX_LINES = 80;
@@ -113,5 +139,8 @@ module.exports = {
   escapeRegex,
   HOOKS_MAX_LINES,
   countLines,
-  checkHooksBudget
+  checkHooksBudget,
+  shellQuote,
+  shellSafeArgs,
+  shellCommandLine
 };

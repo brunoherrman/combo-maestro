@@ -15,10 +15,12 @@ const { estimateTokens } = require("./lib.js");
 const EP_BEGIN = "<!-- COMBO-MAESTRO:ENTRYPOINT:BEGIN -->";
 const EP_END = "<!-- COMBO-MAESTRO:ENTRYPOINT:END -->";
 
+// Ordem canonica do nucleo (PERSISTENCE.md): INDEX -> HANDOFF -> CONTEXT -> SPECS/ACTIVE.
 const ENTRY_FILES = [
   "DEV/INDEX.md",
-  "DEV/SPECS/ACTIVE.md",
-  "DEV/HANDOFF.md"
+  "DEV/HANDOFF.md",
+  "DEV/CONTEXT.md",
+  "DEV/SPECS/ACTIVE.md"
 ];
 
 const DEFAULT_CAP_TOKENS = 1200;

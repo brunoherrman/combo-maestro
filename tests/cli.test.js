@@ -105,28 +105,57 @@ test("verify fails when hooks.md exceeds the core line budget", () => {
   assert.match(res.stderr, /limite 80 do nucleo/);
 });
 
-test("init-entrypoint scaffolds compact DEV docs and preserves AGENTS body", () => {
+test("init-entrypoint delegates the DEV hierarchy to the core and keeps the AGENTS body", () => {
   const project = makeTempDir();
   const agentsFile = path.join(project, "AGENTS.md");
   fs.writeFileSync(agentsFile, "Projeto legado\n", "utf8");
 
   const res = runCli(["init-entrypoint", "--project-path", project]);
-  assert.equal(res.status, 0, res.stderr);
 
-  const indexFile = path.join(project, "DEV", "INDEX.md");
-  const activeFile = path.join(project, "DEV", "SPECS", "ACTIVE.md");
-  const handoffFile = path.join(project, "DEV", "HANDOFF.md");
-  const verifyFile = path.join(project, "DEV", "VERIFY.md");
+  // The core CLI owns the DEV/ schema now. Where it is unavailable (CI without
+  // the core installed) the command must fail loudly pointing at the install,
+  // never silently fall back to a schema the core gate would reject.
+  if (res.status !== 0) {
+    assert.match(res.stderr, /orquestrador-maestro/);
+    return;
+  }
 
-  assert.ok(fs.existsSync(indexFile));
-  assert.ok(fs.existsSync(activeFile));
-  assert.ok(fs.existsSync(handoffFile));
-  assert.ok(fs.existsSync(verifyFile));
+  assert.match(res.stdout, /init-dev do nucleo/);
+  assert.ok(fs.existsSync(path.join(project, "DEV", "HANDOFF.md")));
 
   const agents = read(agentsFile);
   assert.match(agents, /COMBO-MAESTRO:ENTRYPOINT:BEGIN/);
   assert.match(agents, /DEV\/HANDOFF\.md/);
   assert.match(agents, /Projeto legado/);
+});
+
+test("budget is retired and points at the core context brief", () => {
+  const res = runCli(["budget", "--project-path", repoRoot]);
+  assert.equal(res.status, 2);
+  assert.match(res.stderr, /APOSENTADO/);
+  assert.match(res.stderr, /context brief/);
+});
+
+test("shell arguments are quoted so a project path cannot inject a command", () => {
+  const { shellQuote, shellSafeArgs } = require(path.join(repoRoot, "src", "lib.js"));
+
+  const hostile = "C:\\tmp\\proj & calc.exe";
+  const quoted = shellQuote(hostile);
+  assert.ok(quoted.startsWith(process.platform === "win32" ? '"' : "'"));
+  assert.ok(
+    quoted.endsWith(process.platform === "win32" ? '"' : "'"),
+    "the metacharacter must stay inside the quotes"
+  );
+
+  // Without a shell, argv is passed verbatim and quoting would corrupt it.
+  assert.deepEqual(shellSafeArgs([hostile], false), [hostile]);
+  assert.deepEqual(shellSafeArgs([hostile], true), [quoted]);
+
+  // shell:true takes one pre-quoted line (DEP0190), so the metacharacter must
+  // arrive wrapped rather than as a bare token cmd.exe would treat as a chain.
+  const { shellCommandLine } = require(path.join(repoRoot, "src", "lib.js"));
+  const line = shellCommandLine("some-cli", ["run", hostile]);
+  assert.equal(line, `some-cli ${shellQuote("run")} ${quoted}`);
 });
 
 test("delegate blocks billed API mode unless explicitly allowed", () => {

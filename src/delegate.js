@@ -4,6 +4,7 @@ const { spawnSync } = require("node:child_process");
 const { readProfileModel } = require("./setup-bracal.js");
 const { logDelegation } = require("./audit.js");
 const { loadEntrypoint, withEntrypoint } = require("./entrypoint.js");
+const { shellCommandLine } = require("./lib.js");
 
 // Broker registry: cada CLI delega braçal para o tier barato do próprio
 // ecossistema. A sessão principal fica no modelo caro; só o subprocesso usa o
@@ -111,11 +112,18 @@ module.exports = function delegate(options) {
   const args = broker.build(model, taskForSub);
   console.error(`[combo-maestro] delegando bracal -> ${broker.cmd} (${cli}) modelo ${model}`);
 
-  const res = spawnSync(broker.cmd, args, {
-    input: broker.stdin ? String(taskForSub) : undefined,
-    stdio: [broker.stdin ? "pipe" : "ignore", "inherit", "inherit"],
-    shell: process.platform === "win32"
-  });
+  // On Windows the broker is an npm .cmd shim, which needs shell:true; with the
+  // shell on, the task text goes through cmd.exe, so it must be quoted.
+  const useShell = process.platform === "win32";
+  const res = spawnSync(
+    useShell ? shellCommandLine(broker.cmd, args) : broker.cmd,
+    useShell ? undefined : args,
+    {
+      input: broker.stdin ? String(taskForSub) : undefined,
+      stdio: [broker.stdin ? "pipe" : "ignore", "inherit", "inherit"],
+      shell: useShell
+    }
+  );
 
   if (res.error) {
     logDelegation({ cli, mode: broker.mode, model, status: "spawn-error", task });
