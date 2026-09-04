@@ -122,3 +122,8 @@ module.exports = function curate(options) {
   console.log(`\nAplicado: ${archiveList.length} entradas arquivadas em ${archivePath}.`);
   console.log(`Cinzas (${grayList.length}) e recentes (${keepList.length}) ficaram no WORKLOG.`);
 };
+
+// Exposed so `memory push` can reuse the same worklog parser and bucket
+// classifier instead of duplicating them.
+module.exports.parseEntries = parseEntries;
+module.exports.classify = classify;

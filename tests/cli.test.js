@@ -171,3 +171,141 @@ test("delegate redirects in-session brokers instead of shelling out", () => {
   assert.match(res.stderr, /IN-SESSION/);
   assert.match(res.stderr, /Haiku/);
 });
+
+// --- memory layer ------------------------------------------------------------
+
+const WORKLOG_FIXTURE = `# WORKLOG
+
+## 2026-07-16 - broker grok in-session
+
+- Spec: adicionar broker grok cheap-tier
+- Changed: delegate.js ganhou tier grok-code-fast-1 in-session para bracal
+- Verified: npm test verde
+
+## 2026-07-28 - gate de hooks de 80 linhas
+
+- Spec: adaptar ao limite de hooks do nucleo
+- Changed: bloco COMBO encurtado para caber no orcamento
+- Verified: verify passou
+
+## 2026-08-05 - camada memory FTS
+
+- Spec: recall cross-projeto sem daemon
+- Changed: memory.js com index/push/recall/link em BM25 puro
+- Verified: smoke test manual verde
+`;
+
+function seedProject() {
+  const project = makeTempDir();
+  fs.mkdirSync(path.join(project, "DEV"), { recursive: true });
+  fs.writeFileSync(path.join(project, "DEV", "WORKLOG.md"), WORKLOG_FIXTURE, "utf8");
+  return project;
+}
+
+test("memory push proposes without writing, then --apply persists pages", () => {
+  const home = makeTempDir();
+  const project = seedProject();
+
+  // keep=1 -> the older entry falls into the substantive "gray" bucket.
+  let res = runCli(["memory", "push", "--project-path", project, "--home-path", home, "--keep", "1"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /Nada escrito/);
+  const store = path.join(home, ".orquestrador", "memory");
+  assert.ok(!fs.existsSync(store) || fs.readdirSync(store).filter((f) => f.endsWith(".md")).length === 0);
+
+  res = runCli(["memory", "push", "--project-path", project, "--home-path", home, "--keep", "1", "--apply"]);
+  assert.equal(res.status, 0, res.stderr);
+  const pages = fs.readdirSync(store).filter((f) => f.endsWith(".md"));
+  assert.ok(pages.length >= 1, "at least one gray entry becomes a page");
+  assert.ok(fs.existsSync(path.join(store, "INDEX.json")));
+});
+
+test("memory recall ranks by BM25, honors the char cap and the project namespace", () => {
+  const home = makeTempDir();
+  const project = seedProject();
+  runCli(["memory", "push", "--project-path", project, "--home-path", home, "--keep", "1", "--apply"]);
+
+  let res = runCli(["memory", "recall", "grok broker in-session", "--home-path", home, "--max-chars", "400"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /grok/i);
+  // Bounded output: header + at most a few short lines, never the whole store.
+  assert.ok(res.stdout.length < 900, `recall output was ${res.stdout.length} chars`);
+
+  // The seeded pages carry project = basename(project); a different project must
+  // not leak them.
+  res = runCli(["memory", "recall", "grok", "--home-path", home, "--project", "outro-cliente"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /nada casou/);
+});
+
+test("memory recall filters by as_of date", () => {
+  const home = makeTempDir();
+  const project = seedProject();
+  runCli(["memory", "push", "--project-path", project, "--home-path", home, "--keep", "1", "--apply"]);
+
+  // Only the 2026-07-16 page is <= this date; the 07-28 page is excluded.
+  const res = runCli(["memory", "recall", "hooks gate grok", "--home-path", home, "--as-of", "2026-07-20"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.doesNotMatch(res.stdout, /gate de hooks/);
+});
+
+test("memory recall degrades gracefully with no store", () => {
+  const home = makeTempDir();
+  const res = runCli(["memory", "recall", "qualquer coisa", "--home-path", home]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /store vazio|sem indice/i);
+});
+
+test("memory link writes a typed edge and rejects invalid relations", () => {
+  const home = makeTempDir();
+  const project = seedProject();
+  runCli(["memory", "push", "--project-path", project, "--home-path", home, "--keep", "1", "--apply"]);
+  const store = path.join(home, ".orquestrador", "memory");
+  const ids = fs
+    .readdirSync(store)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => path.basename(f, ".md"));
+  assert.ok(ids.length >= 2, "need two pages to link");
+
+  let res = runCli(["memory", "link", ids[0], "fixes", ids[1], "--home-path", home]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(read(path.join(store, `${ids[0]}.md`)), new RegExp(`fixes:${ids[1]}`));
+
+  res = runCli(["memory", "link", ids[0], "foo", ids[1], "--home-path", home]);
+  assert.equal(res.status, 1);
+  assert.match(res.stderr, /edge invalido/);
+});
+
+test("memory lint passes on a clean store and fails on broken edges", () => {
+  const home = makeTempDir();
+  const store = path.join(home, ".orquestrador", "memory");
+  fs.mkdirSync(store, { recursive: true });
+  const page = (id, links) =>
+    `---\nid: ${id}\ntype: fact\nproject: p\ncreated: 2026-01-01\nlinks: [${links}]\ntags: []\n---\ncorpo ${id}\n`;
+  fs.writeFileSync(path.join(store, "a.md"), page("a", "fixes:b"), "utf8");
+  fs.writeFileSync(path.join(store, "b.md"), page("b", ""), "utf8");
+
+  let res = runCli(["memory", "lint", "--home-path", home]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /0 erros/);
+
+  // A dangling edge and an invalid relation must both be reported and fail.
+  fs.writeFileSync(path.join(store, "c.md"), page("c", "fixes:naoexiste, foo:b"), "utf8");
+  res = runCli(["memory", "lint", "--home-path", home]);
+  assert.equal(res.status, 1);
+  assert.match(res.stdout, /edge quebrado/);
+  assert.match(res.stdout, /edge invalido/);
+});
+
+test("memory BM25 and tokenizer behave deterministically", () => {
+  const memory = require(path.join(repoRoot, "src", "memory.js"));
+  assert.deepEqual(memory.tokenize("O núcleo e a HOOKS.md"), ["nucleo", "hooks", "md"]);
+  assert.equal(memory.slugify("Núcleo 0.1.27 — gate!"), "nucleo-0-1-27-gate");
+
+  const { meta, body } = memory.parseFrontmatter(
+    "---\nid: x\ntype: fix\nlinks: [fixes:y, causes:z]\n---\ncorpo aqui\n"
+  );
+  assert.equal(meta.id, "x");
+  assert.deepEqual(meta.links, ["fixes:y", "causes:z"]);
+  assert.equal(body, "corpo aqui");
+});

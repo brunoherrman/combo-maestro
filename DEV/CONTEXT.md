@@ -6,7 +6,7 @@
 - Tipo: CLI Node.js sem dependências externas
 - Active handoff: `HANDOFF.md`
 - Active spec: `SPECS/ACTIVE.md`
-- Núcleo Orquestrador alvo: **0.1.19**
+- Núcleo Orquestrador alvo: **0.1.27** (npm), instalado local **0.1.24**
 - Camada aditiva: injeta blocos `<!-- COMBO-MAESTRO:BEGIN/END -->` em `~/.orquestrador/rules.md` e `hooks.md`
 
 ## Commands
@@ -21,10 +21,11 @@
 - `~/.orquestrador/hooks.md` tem limite de 80 linhas no núcleo; hoje em 76. O bloco COMBO divide esse orçamento.
 - Reinstalar ou atualizar o núcleo **sempre** apaga os blocos COMBO. Rodar `combo-maestro install` + `verify` depois.
 - O núcleo 0.1.18 introduziu gate estrito de `DEV/` com headings canônicos em inglês. `init-entrypoint` ainda gera o schema antigo em português e produz projetos que falham o gate.
-- `context brief` (núcleo 0.1.14/0.1.18) cobre o que o `budget` do combo fazia, com orçamento de caracteres e resumo de estado.
-- Bug no núcleo 0.1.19: `check-dev-gates --project-path` relativo resolve contra o diretório de instalação da CLI. Usar caminho absoluto.
+- `context brief` (núcleo 0.1.14/0.1.18) cobre o que o `budget` do combo fazia; subseção "Budget" morta removida do hooks (2026-09-03).
+- Bug de `--project-path` relativo corrigido no núcleo 0.1.20 (verificado 0.1.24). Risco encerrado.
+- Núcleo 0.1.21+ trouxe `workflow-lock`/`workflow-state`; sobrepõe parcialmente `stale-check` (ver README). Decisão: manter, escopo processo-em-RAM ainda não coberto.
 
 ## Next Context
 
-- Decidir o destino de `init-entrypoint` e `budget` diante da absorção pelo núcleo.
-- Reportar o bug de caminho relativo ao Bolzan.
+- Implementar a camada `memory` (spec em `SPECS/ACTIVE.md`): FTS-only, store global, comandos index/push/recall/link.
+- Rodar `combo-maestro install` para propagar o corte do "Budget" e revalidar orçamento de 80 linhas.

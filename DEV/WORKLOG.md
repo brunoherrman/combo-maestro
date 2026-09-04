@@ -1,5 +1,35 @@
 # WORKLOG
 
+## 2026-09-03 - memory lint + proposta harvest (gaps do ai-memory)
+
+- Spec: cobrir 2 gaps do ai-memory apontados na auditoria: (2) edge lint de store, (1) cross-session synthesis
+- Changed: `memory lint` em `src/memory.js` — varre o store, acha edge quebrado (alvo inexistente), edge invalido, id duplicado, `type` fora do enum, e lista `contradicts` pendentes; exit 1 em erro (serve de gate). Roteado no bin; help e README atualizados
+- Changed: nova `SPECS/MEMORY-HARVEST.md` (PROPOSTA, nao iniciada) para `memory harvest` — deriva candidatas de memoria dos transcripts de sessao (`~/.claude/projects/<slug>/*.jsonl`) por sinais heuristicos lexicais, human-in-the-loop forte, sem LLM/API. Documenta a tensao (sem modelo, synthesis fica raso/ruidoso) e riscos (privacidade/LGPD, formato instavel, ruido)
+- Verified: `npm test` 15/15 (novo caso: lint clean exit 0, lint com edge quebrado + invalido exit 1); smoke manual de lint em store limpo e corrompido
+- Gaps deixados de fora com justificativa: embeddings/hybrid search e `serve` MCP daemon (contradizem opcao A / sem daemon); export-okf conformante (so se interop futura); eval harness (escala pessoal nao justifica)
+- Risks: harvest so aprovado como proposta; se implementado, ruido lexical e privacidade de transcript sao os pontos criticos
+- Next context: decisao do maestro sobre harvest (3 perguntas no fim do MEMORY-HARVEST.md); publicar 0.11.0 quando quiser
+
+## 2026-09-03 - camada memory FTS implementada (etapa a)
+
+- Spec: `SPECS/ACTIVE.md` (camada memory FTS-only, store global, index/push/recall/link)
+- Changed: novo `src/memory.js` (BM25 puro, zero dep): tokenizer PT+EN com stopwords, parser/serializer de frontmatter OKF-like, indice invertido em `~/.orquestrador/memory/INDEX.json`, recall bounded (top-N + char-cap, filtros project/type/as-of), edges tipados (causes/fixes/contradicts), push human-in-the-loop reusando `parseEntries`/`classify` do curate (balde CINZA -> paginas; so grava com --apply/--pick)
+- Changed: `src/curate.js` exporta `parseEntries`/`classify`; `bin/combo-maestro.js` roteia `memory <sub>` e ganhou flags --as-of/--top/--max-chars/--type/--project/--pick/--query; help e usage atualizados
+- Changed: subsecao Memory no template de hooks + reinjetada (77/80 linhas); README com secao "Camada de memoria" e travas (DEV/ manda, recall bounded, namespace por projeto, degrada vazio); package 0.10.0 -> 0.11.0
+- Verified: `npm test` 14/14 (6 casos novos: push propoe/aplica, recall BM25+char-cap+isolamento, as-of, degradacao sem store, link+edge invalido, unit de tokenize/slug/frontmatter); smoke manual index/push/recall/link/as-of/type/isolation em scratch; `combo-maestro verify` + `orquestrador-maestro verify` passam
+- Risks: sem embeddings (opcao A) -> recall so lexical; store global exige disciplina de --project no recall; hooks com 3 linhas de folga
+- Next context: etapa c (revisao do maestro do design/nomes); decidir publicar 0.11.0 no npm; avaliar `memory push` interativo por-item no futuro
+
+## 2026-09-03 - limpeza pre-memory e spec da camada de memoria
+
+- Spec: aprovada nova `SPECS/ACTIVE.md` para a camada `memory` (FTS-only, store global, comandos index/push/recall/link); decisao do maestro: opcao A (so FTS), store global com recall limitado, spec-first
+- Auditoria: nucleo npm em 0.1.27, instalado local 0.1.24, docs miravam 0.1.19; `workflow-lock`/`workflow-state` (0.1.21+) sobrepoe parcialmente `stale-check` (escopo processo-em-RAM ainda nao coberto -> mantido)
+- Changed (hooks): removida a subsecao morta "Budget" do template e do `hooks.md` instalado (bullet 1 duplicava PERSISTENCE/core; bullet util "oferecer curadoria" dobrado na secao Curadoria). hooks.md 75 -> 71 linhas, 9 de folga para a linha de session-start recall da camada memory
+- Changed (docs): README e CONTEXT bumpados 0.1.19 -> 0.1.27; nota da fronteira `stale-check` vs `workflow-state`; risco do bug de `--project-path` relativo encerrado (corrigido no nucleo 0.1.20)
+- Verified: `combo-maestro verify` passou; `orquestrador-maestro verify` passou; hooks 71/80; `npm test` 8/8
+- Risks: linha de session-start recall ainda NAO injetada (comando `memory recall` nao existe ate a etapa a); `curate`/`stale-check` seguem sem cobertura dedicada
+- Next context: implementar a camada `memory` conforme o spec; depois rodar `combo-maestro install` para reinjetar e revalidar 80 linhas
+
 ## 2026-08-08 - núcleo 0.1.19 e migração do DEV para o schema canônico
 
 - Spec: atualizar o núcleo (0.1.12 -> 0.1.19, agora publicado no npm, confirmado pelo Bolzan) e reavaliar a sobreposição do combo
