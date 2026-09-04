@@ -12,15 +12,15 @@ This file should stay small. Refresh it after substantive work or run `orquestra
 
 ## Latest Work
 
-- Entry: 2026-07-01 - revisão de contrato e cobertura
-- Spec: corrigir problemas encontrados na revisão anterior
-- Changed: README reescrito; `init-entrypoint` completado com `HANDOFF` e `VERIFY`; testes de CLI adicionados; help atualizado
-- Verified: `npm test`
-- Risks: `curate`, `budget` e `stale-check` ainda têm cobertura indireta, não dedicada
-- Next context: acompanhar releases do núcleo e reinjetar os blocos COMBO após cada atualização
+- Entry: 2026-09-04 - delegacao ask-first + statusline de quota (5h/7d)
+- Spec: melhorias do maestro (AionUI TEAM): delegacao pergunta antes; alerta de quota da janela de 5h no chat
+- Changed: `bracal-delegation.rules.md` vira GATE HUMANO (pergunta antes de delegar braçal); novo `src/statusline.js` + comando `statusline` (rate_limits 5h/7d + ctx + custo, cor nos limiares 25/50/75/90, le stdin do Claude Code); README (delegacao, secao Quota, roadmap); core em 0.2.4; memory e bridge pro core (harvest so)
+- Verified: `npm test` 14/14; smoke do statusline (60%/92%/legacy/vazio); `combo-maestro verify` + `orquestrador-maestro verify` passam; DEV gate passa (worklog compactado p/ 12)
+- Risks: quota so Claude Code (outros providers = ledger no roadmap); ligar statusline exige 1 linha em ~/.claude/settings.json
+- Next context: oferecer wire do statusline; ledger multi-provider; cross-agent harvest; team audit
 
 ## Recent Entries
 
-- 2026-07-01 - revisão de contrato e cobertura
-- 2026-07-16 - adaptação ao Orquestrador 0.1.3 (Grok)
-- 2026-07-28 - núcleo no Unreleased e alinhamento com PERSISTENCE.md
+- 2026-09-04 - delegacao ask-first + statusline de quota (5h/7d)
+- 2026-09-04 - core 0.2.4 (reauditoria, sem mudanca de codigo)
+- 2026-09-04 - core 0.2.0; memory FTS aposentada -> bridge harvest->core
