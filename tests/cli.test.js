@@ -205,6 +205,25 @@ test("memory harvest proposes signal turns, filters noise, and redacts", () => {
   assert.match(res.stderr, /transcript nao encontrado/);
 });
 
+test("codexUserTurns extracts user turns and honors the project cwd filter", () => {
+  const memory = require(path.join(repoRoot, "src", "memory.js"));
+  const dir = makeTempDir();
+  const file = path.join(dir, "rollout.jsonl");
+  const proj = makeTempDir();
+  const lines = [
+    JSON.stringify({ type: "session_meta", payload: { cwd: proj } }),
+    JSON.stringify({ type: "response_item", payload: { role: "user", content: [{ type: "input_text", text: "na verdade sempre use tabs neste projeto" }] } }),
+    JSON.stringify({ type: "response_item", payload: { role: "user", content: [{ type: "input_text", text: "# AGENTS.md instructions for C:/x ..." }] } }),
+    JSON.stringify({ type: "response_item", payload: { role: "assistant", content: [{ type: "output_text", text: "ok" }] } })
+  ].join("\n");
+  fs.writeFileSync(file, lines, "utf8");
+
+  const turns = memory.codexUserTurns(file, proj);
+  assert.deepEqual(turns, ["na verdade sempre use tabs neste projeto"]); // AGENTS.md + assistant filtered
+  // A different project cwd -> nothing (no cross-project leak).
+  assert.deepEqual(memory.codexUserTurns(file, makeTempDir()), []);
+});
+
 test("retired memory subcommands point at the core native memory", () => {
   for (const sub of ["index", "push", "recall", "link", "lint"]) {
     const res = runCli(["memory", sub]);

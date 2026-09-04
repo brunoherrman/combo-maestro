@@ -98,6 +98,93 @@ function userTurnsFromTranscript(file) {
   return turns;
 }
 
+// --- Codex source (cross-agent harvest) --------------------------------------
+
+function collectJsonl(dir, out) {
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) collectJsonl(p, out);
+    else if (e.name.endsWith(".jsonl")) out.push(p);
+  }
+}
+
+// Recent Codex session files, newest first. Codex stores all sessions globally
+// under ~/.codex/sessions/YYYY/MM/DD/ regardless of project, so the per-project
+// filter happens in codexUserTurns via each session's recorded cwd.
+function codexSessionFiles(last) {
+  const dir = path.join(os.homedir(), ".codex", "sessions");
+  const all = [];
+  collectJsonl(dir, all);
+  return all
+    .map((f) => {
+      try {
+        return { f, mtime: fs.statSync(f).mtimeMs };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, Math.max(last * 4, last))
+    .map((x) => x.f);
+}
+
+// Codex line shape: { timestamp, ordinal, type, payload }. A user turn is a
+// payload with role "user" whose content is [{ type:"input_text", text }].
+// Returns [] when the session's cwd is not this project (no cross-project leak).
+function codexUserTurns(file, projectRoot) {
+  let raw;
+  try {
+    raw = fs.readFileSync(file, "utf8");
+  } catch {
+    return [];
+  }
+  let cwd = null;
+  const turns = [];
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    let o;
+    try {
+      o = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const p = o.payload || o;
+    if (p.cwd) cwd = p.cwd;
+    if (p.role !== "user") continue;
+    const content = p.content;
+    let text = Array.isArray(content)
+      ? content.filter((x) => x && (x.type === "input_text" || x.type === "text")).map((x) => x.text).join(" ")
+      : typeof content === "string"
+        ? content
+        : "";
+    text = String(text).trim();
+    if (!text || text.startsWith("<") || text.startsWith("/") || text.startsWith("#")) continue;
+    if (/AGENTS\.md instructions/i.test(text)) continue;
+    if (text.split(/\s+/).length < 4) continue;
+    turns.push(text);
+  }
+  if (projectRoot && cwd && path.resolve(cwd) !== path.resolve(projectRoot)) return [];
+  return turns;
+}
+
+function recentJsonl(dir, last) {
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith(".jsonl"))
+    .map((f) => path.join(dir, f))
+    .map((f) => ({ f, mtime: fs.statSync(f).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, last)
+    .map((x) => x.f);
+}
+
 // Record one observation into the core memory. Returns true on success.
 function recordToCore(projectRoot, type, summary) {
   const args = ["memory", "record", "--project", projectRoot, "--type", type, "--summary", summary];
@@ -108,50 +195,64 @@ function recordToCore(projectRoot, type, summary) {
 
 function cmdHarvest(options) {
   const projectRoot = path.resolve(options.projectPath || process.cwd());
-  const tdir = options.transcripts ? path.resolve(options.transcripts) : transcriptDir(projectRoot);
   const last = Number.parseInt(options.last, 10) > 0 ? Number.parseInt(options.last, 10) : 5;
+  const agent = options.agent || "all"; // claude | codex | all
 
-  if (!fs.existsSync(tdir)) {
-    console.error(
-      `harvest: diretorio de transcript nao encontrado: ${tdir}\n` +
-      "Passe --transcripts <dir> se o slug do projeto for diferente."
-    );
-    process.exit(2);
+  // Build the list of (agent, files, turns-extractor) sources.
+  const sources = [];
+  const wantClaude = agent === "all" || agent === "claude";
+  const wantCodex = agent === "all" || agent === "codex";
+
+  if (options.transcripts) {
+    // Explicit dir override -> treat as a Claude-style transcript folder.
+    const tdir = path.resolve(options.transcripts);
+    if (!fs.existsSync(tdir)) {
+      console.error(`harvest: diretorio de transcript nao encontrado: ${tdir}`);
+      process.exit(2);
+    }
+    sources.push({ agent: "claude", files: recentJsonl(tdir, last), turns: (f) => userTurnsFromTranscript(f) });
+  } else {
+    if (wantClaude) {
+      const tdir = transcriptDir(projectRoot);
+      if (fs.existsSync(tdir)) {
+        sources.push({ agent: "claude", files: recentJsonl(tdir, last), turns: (f) => userTurnsFromTranscript(f) });
+      }
+    }
+    if (wantCodex) {
+      sources.push({ agent: "codex", files: codexSessionFiles(last), turns: (f) => codexUserTurns(f, projectRoot) });
+    }
   }
 
-  const files = fs
-    .readdirSync(tdir)
-    .filter((f) => f.endsWith(".jsonl"))
-    .map((f) => path.join(tdir, f))
-    .map((f) => ({ f, mtime: fs.statSync(f).mtimeMs }))
-    .sort((a, b) => b.mtime - a.mtime)
-    .slice(0, last)
-    .map((x) => x.f);
-
-  if (files.length === 0) {
-    console.log(`harvest: nenhuma sessao .jsonl em ${tdir}`);
+  const totalFiles = sources.reduce((n, s) => n + s.files.length, 0);
+  if (totalFiles === 0) {
+    console.log(`harvest: nenhuma sessao encontrada (agente=${agent}, projeto=${projectRoot}).`);
     return;
   }
 
   const seen = new Set();
   const candidates = [];
-  for (const file of files) {
-    for (const text of userTurnsFromTranscript(file)) {
-      const hits = HARVEST_SIGNALS.reduce((n, re) => n + (re.test(text) ? 1 : 0), 0);
-      if (hits === 0) continue;
-      const norm = text.toLowerCase().replace(/\s+/g, " ").slice(0, 80);
-      if (seen.has(norm)) continue;
-      seen.add(norm);
-      const snippet = redactSnippet(text.replace(/\s+/g, " ")).slice(0, 200);
-      candidates.push({ type: classifyHarvest(text), hits, summary: snippet });
+  const perAgent = {};
+  for (const src of sources) {
+    for (const file of src.files) {
+      for (const text of src.turns(file)) {
+        const hits = HARVEST_SIGNALS.reduce((n, re) => n + (re.test(text) ? 1 : 0), 0);
+        if (hits === 0) continue;
+        const norm = text.toLowerCase().replace(/\s+/g, " ").slice(0, 80);
+        if (seen.has(norm)) continue;
+        seen.add(norm);
+        const snippet = redactSnippet(text.replace(/\s+/g, " ")).slice(0, 200);
+        candidates.push({ agent: src.agent, type: classifyHarvest(text), hits, summary: snippet });
+        perAgent[src.agent] = (perAgent[src.agent] || 0) + 1;
+      }
     }
   }
   candidates.sort((a, b) => b.hits - a.hits);
 
+  const perAgentStr = Object.entries(perAgent).map(([a, n]) => `${a}:${n}`).join(", ") || "nenhum";
   console.log("memory harvest — bridge para o memory nativo do core (human-in-the-loop)");
   console.log(`Project: ${projectRoot}`);
-  console.log(`Transcripts: ${files.length} sessao(oes) em ${tdir}`);
-  console.log(`Candidatas com sinal: ${candidates.length}\n`);
+  console.log(`Fontes: ${totalFiles} sessao(oes) [${sources.map((s) => s.agent).join("+")}]`);
+  console.log(`Candidatas com sinal: ${candidates.length} (${perAgentStr})\n`);
   if (candidates.length === 0) {
     console.log("Nada com sinal durable nas sessoes lidas.");
     return;
@@ -163,7 +264,7 @@ function cmdHarvest(options) {
   candidates.forEach((c, i) => {
     const n = i + 1;
     const on = !pick || pick.has(n);
-    console.log(`  ${on ? "[x]" : "[ ]"} #${n} [${c.type}] (sinais=${c.hits})`);
+    console.log(`  ${on ? "[x]" : "[ ]"} #${n} [${c.agent}/${c.type}] (sinais=${c.hits})`);
     console.log(`      "${c.summary}"`);
   });
 
@@ -184,7 +285,8 @@ function cmdHarvest(options) {
   let ok = 0;
   let fail = 0;
   for (const c of selected) {
-    if (recordToCore(projectRoot, c.type, c.summary)) ok += 1;
+    // Keep provenance: which agent's transcript the observation came from.
+    if (recordToCore(projectRoot, c.type, `[${c.agent}] ${c.summary}`)) ok += 1;
     else fail += 1;
   }
   console.log(`\nGravadas ${ok} observacoes no memory do core via 'memory record'.` + (fail ? ` ${fail} falharam.` : ""));
@@ -220,6 +322,7 @@ module.exports = function memory(sub, options) {
 // Exposed for tests.
 module.exports.redactSnippet = redactSnippet;
 module.exports.classifyHarvest = classifyHarvest;
+module.exports.codexUserTurns = codexUserTurns;
 module.exports.transcriptDir = transcriptDir;
 module.exports.CORE_TYPES = CORE_TYPES;
 module.exports.todayISO = todayISO;

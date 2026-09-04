@@ -40,10 +40,10 @@ Uso:
   combo-maestro setup-bracal [--cli codex] [--model gpt-5.4-mini]
   combo-maestro delegate  "<tarefa>" [--cli codex|claude|mimo|gemini|grok] [--model MODEL] [--allow-api] [--no-context]
   combo-maestro init-entrypoint [--project-path PATH] [--dry-run]
-  combo-maestro memory harvest [--project-path PATH] [--last N] [--transcripts DIR] [--pick 1,3] [--apply]
-      colhe turnos com sinal dos transcripts e grava no memory do core via
-      'orquestrador-maestro memory record'. Propoe por default; --apply grava.
-      (index/push/recall/link/lint aposentados -> use o memory nativo do core.)
+  combo-maestro memory harvest [--project-path PATH] [--agent claude|codex|all] [--last N] [--pick 1,3] [--apply]
+      colhe turnos com sinal dos transcripts (Claude Code + Codex, filtrado por
+      cwd do projeto) e grava no memory do core via 'memory record'. Propoe por
+      default; --apply grava. (index/push/recall/link/lint -> memory do core.)
   combo-maestro statusline
       statusline do Claude Code: mostra a quota da janela de 5h e 7d (%,
       reset), contexto e custo, com cor nos limiares 25/50/75/90. Le o JSON
@@ -138,6 +138,7 @@ const COMMON = {
   "--pick": { key: "pick", value: true },
   "--last": { key: "last", value: true },
   "--transcripts": { key: "transcripts", value: true },
+  "--agent": { key: "agent", value: true },
   "--days": { key: "days", value: true },
   "--since": { key: "since", value: true },
   "--cost": { key: "cost", value: false },

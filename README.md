@@ -123,8 +123,10 @@ O que o memory do core **não** faz é colher conhecimento dos **transcripts de 
 combo-maestro memory harvest --project-path . --last 5
 ```
 
-- **Fonte**: transcripts do Claude Code (`~/.claude/projects/<slug>/*.jsonl`), **read-only**.
-- **Extração**: turnos do usuário com SINAL de conhecimento durável (correção, decisão, fix confirmado, risco) por heurística lexical. Ruidoso de propósito.
+- **Fontes** (`--agent claude|codex|all`, default `all`), **read-only**:
+  - Claude Code: `~/.claude/projects/<slug>/*.jsonl`.
+  - Codex: `~/.codex/sessions/**/*.jsonl`, **filtrado pelo `cwd` da sessão** = projeto atual (sem vazar outro projeto).
+- **Extração**: turnos do usuário com SINAL de conhecimento durável (correção, decisão, fix confirmado, risco) por heurística lexical. Ruidoso de propósito. Cada observação gravada leva a proveniência `[claude]`/`[codex]`.
 - **Bridge**: com `--apply` (ou `--pick 1,3`), cada candidata aprovada vira uma observação no core via `orquestrador-maestro memory record --type <decision|discovery|implementation|risk>`. Sem `--apply`, só propõe.
 - **Human-in-the-loop**: você revisa o TEXTO LITERAL antes de gravar. Nunca grava sozinho.
 - **Privacidade**: `redactSnippet` mascara home/username em paths e tokens (`sk-`/`xai-`/`ghp_`/`AKIA`/hex longo) **antes** de propor.
