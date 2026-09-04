@@ -1,4 +1,12 @@
-# Active Spec - combo-maestro memory layer
+# Active Spec - combo-maestro memory (bridge para o core 0.2.0)
+
+> **PIVOT 2026-09-04**: o core **0.2.0** trouxe `memory` NATIVO (record/search/show/
+> timeline/promote/stats/cleanup, per-repo, git-integrado). A camada FTS propria do
+> combo (index/push/recall/link/lint, store `~/.orquestrador/memory/`) foi **aposentada**
+> para nao duplicar o core. Sobra so o que o core NAO faz: `memory harvest` (colheita de
+> transcripts) — refatorado para ALIMENTAR o `orquestrador-maestro memory record` em vez
+> de um store proprio. Decisao do maestro: **bridge**. O texto abaixo e o historico da
+> camada FTS original (contexto), nao o estado atual.
 
 ## Goal
 
@@ -81,6 +89,6 @@ fora; **store global** com recall limitado; **spec primeiro**, codigo numa rodad
 
 ## Status
 
-- State: implementada, verde (14/14), revisada (etapa c). Aberto so: publicar 0.11.0 quando o maestro quiser.
+- State: FTS aposentada; substituida por `memory harvest` bridge -> core 0.2.0 memory. Verde (12/12). combo 0.12.0.
 - Owner: Bruno Herrman
-- Last updated: 2026-09-03
+- Last updated: 2026-09-04

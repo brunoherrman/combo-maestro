@@ -20,6 +20,17 @@
 - Risks: harvest so aprovado como proposta; se implementado, ruido lexical e privacidade de transcript sao os pontos criticos
 - Next context: decisao do maestro sobre harvest (3 perguntas no fim do MEMORY-HARVEST.md); publicar 0.11.0 quando quiser
 
+## 2026-09-04 - core 0.2.0 + pivot da memory pra bridge
+
+- Spec: atualizar o nucleo pra 0.2.0 e casar o combo (pedido do maestro)
+- Nucleo: `npm uninstall` + `install @latest` (0.1.27 -> 0.2.0); reinstall regenerou contratos e apagou COMBO; reinjetado e verificado (hooks 76/80, ambos verify passam)
+- Achado GRANDE: 0.2.0 trouxe `memory` NATIVO (record/search/show/timeline/promote/stats/status/cleanup), per-repo git-integrado, store em `~/.orquestrador/memory/repositories/<id>/observations.jsonl` (mesmo dir que a camada FTS do combo usava). Tipos validos: decision/discovery/implementation/risk
+- Decisao do maestro: BRIDGE. Aposentei a mecanica duplicada do combo (index/push/recall/link/lint + store/INDEX proprio) — apontam pro memory nativo com exit 2. Mantive so `memory harvest`, refatorado pra ALIMENTAR o `orquestrador-maestro memory record` (colheita de transcripts que o core nao faz)
+- Changed: `src/memory.js` reescrito bridge-only (harvest + redactSnippet + classifyHarvest->tipos do core + spawn do `memory record`); bin usage/help/flags enxugados; hooks template Memory subsection vira ponteiro pro core; README (secao, tabela "Por que existe", "Pecas aposentadas", comandos); package 0.11.0 -> 0.12.0
+- Verified: `npm test` 12/12 (harvest propoe/filtra/redige, subcomandos aposentados exit 2, redact, classify->tipos validos); smoke real: harvest --apply gravou observacao no core (confirmado via `memory search`, depois limpei os probes/smoke do observations.jsonl)
+- Risks: harvest lexical segue ruidoso (mitigacao propose-only + revisao + redacao); classify mapeia 4 tipos do core, pode precisar ajuste
+- Next context: commit + push; avaliar aposentar mais pesas se 0.2.x cobrir (stale-check vs workflow-state segue de pe)
+
 ## 2026-09-03 - camada memory FTS implementada (etapa a)
 
 - Spec: `SPECS/ACTIVE.md` (camada memory FTS-only, store global, index/push/recall/link)

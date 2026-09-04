@@ -6,7 +6,8 @@
 - Tipo: CLI Node.js sem dependências externas
 - Active handoff: `HANDOFF.md`
 - Active spec: `SPECS/ACTIVE.md`
-- Núcleo Orquestrador alvo: **0.1.27** (npm), instalado local **0.1.24**
+- Núcleo Orquestrador alvo: **0.2.0** (npm e instalado local)
+- **ATENÇÃO 0.2.0**: o núcleo trouxe `memory` NATIVO (record/search/show/timeline/promote/stats/status/cleanup), per-repositório. Sobrepõe a camada `memory` do combo. Decisão de arquitetura pendente (retirar/diferenciar/bridge).
 - Camada aditiva: injeta blocos `<!-- COMBO-MAESTRO:BEGIN/END -->` em `~/.orquestrador/rules.md` e `hooks.md`
 
 ## Commands

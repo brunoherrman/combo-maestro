@@ -23,7 +23,8 @@ Cobre apenas o que o nucleo (0.1.27) ainda nao faz:
   - curadoria de worklog human-in-the-loop (mostra o cru, voce aprova)
   - stale-process gate (fingerprint fonte vs processo rodando)
   - travas de custo por turno (read-once, batch, anti-poll em job longo)
-  - memory: recall cross-projeto FTS (BM25), store local, sem daemon/API
+  - memory harvest: colhe conhecimento dos transcripts de sessao e alimenta
+    o memory NATIVO do core (0.2.0). O store/recall proprio do combo aposentou.
 
 Aposentado (o nucleo absorveu):
   - budget -> orquestrador-maestro context brief
@@ -37,12 +38,10 @@ Uso:
   combo-maestro setup-bracal [--cli codex] [--model gpt-5.4-mini]
   combo-maestro delegate  "<tarefa>" [--cli codex|claude|mimo|gemini|grok] [--model MODEL] [--allow-api] [--no-context]
   combo-maestro init-entrypoint [--project-path PATH] [--dry-run]
-  combo-maestro memory index
-  combo-maestro memory push   [--project-path PATH] [--keep N] [--pick id1,id2] [--apply]
-  combo-maestro memory recall "<query>" [--project P] [--type T] [--as-of DATE] [--top N] [--max-chars C]
-  combo-maestro memory link   <id-a> <causes|fixes|contradicts> <id-b>
-  combo-maestro memory lint
-  combo-maestro memory harvest [--project-path PATH] [--last N] [--transcripts DIR] [--pick ids] [--apply]
+  combo-maestro memory harvest [--project-path PATH] [--last N] [--transcripts DIR] [--pick 1,3] [--apply]
+      colhe turnos com sinal dos transcripts e grava no memory do core via
+      'orquestrador-maestro memory record'. Propoe por default; --apply grava.
+      (index/push/recall/link/lint aposentados -> use o memory nativo do core.)
   combo-maestro log       [--lines N]
   combo-maestro version
 
@@ -124,13 +123,8 @@ const COMMON = {
   "--allow-api": { key: "allowApi", value: false },
   "--no-context": { key: "noContext", value: false },
   "--lines": { key: "lines", value: true },
-  "--as-of": { key: "asOf", value: true },
-  "--top": { key: "top", value: true },
-  "--max-chars": { key: "maxChars", value: true },
-  "--type": { key: "type", value: true },
   "--project": { key: "project", value: true },
   "--pick": { key: "pick", value: true },
-  "--query": { key: "query", value: true },
   "--last": { key: "last", value: true },
   "--transcripts": { key: "transcripts", value: true }
 };

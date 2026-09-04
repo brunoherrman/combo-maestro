@@ -4,7 +4,7 @@ This file should stay small. Refresh it after substantive work or run `orquestra
 
 ## Snapshot
 
-- Updated: 2026-09-03
+- Updated: 2026-09-04
 - Read order: `INDEX.md` -> `HANDOFF.md` -> `CONTEXT.md` -> `SPECS/ACTIVE.md`
 - Active spec: `SPECS/ACTIVE.md`
 - Verification source: `VERIFY.md`
@@ -12,15 +12,16 @@ This file should stay small. Refresh it after substantive work or run `orquestra
 
 ## Latest Work
 
-- Entry: 2026-09-03 - memory harvest v1 (cross-session synthesis, lexical)
-- Spec: implementar `memory harvest` com defaults, aditivo, sem tocar no orquestrador
-- Changed: `memory harvest` le transcripts `.jsonl` do Claude Code, extrai turnos com sinal, propose-only, com `redactSnippet` mascarando home/username e tokens antes de propor; help/README/spec; NAO injeta hooks (zero orcamento). Base memory (index/push/recall/link/lint) ja entregue
-- Verified: `npm test` 17/17; smoke nos transcripts reais (extracao + mascaramento OK); `combo-maestro verify` + `orquestrador-maestro verify` passam
-- Risks: harvest lexical = ruidoso por design; mitigacao propose-only + revisao + redacao. Sem embeddings (opcao A)
-- Next context: opcional auto-propor no session-end (1 linha de hooks); publicar 0.11.0 quando quiser
+- Entry: 2026-09-04 - core 0.2.0 + pivot da memory pra bridge
+- Spec: atualizar nucleo 0.1.27 -> 0.2.0 e casar o combo
+- Changed: 0.2.0 trouxe memory NATIVO -> aposentei a mecanica FTS do combo (index/push/recall/link/lint, exit 2 apontando pro core) e mantive so `memory harvest`, refatorado pra alimentar o `orquestrador-maestro memory record`. bin/README/hooks/package 0.12.0 atualizados. Blocos COMBO reinjetados (76/80)
+- Verified: `npm test` 12/12; smoke real harvest --apply -> core memory (confirmado + limpo); `combo-maestro verify` + `orquestrador-maestro verify` passam
+- Risks: harvest lexical ruidoso (propose-only + redacao mitigam); classify->4 tipos do core
+- Next context: commit + push; stale-check vs workflow-state segue combo-only
 
 ## Recent Entries
 
+- 2026-09-04 - core 0.2.0; memory FTS aposentada -> bridge harvest->core (12/12)
 - 2026-09-03 - memory harvest v1 (cross-session, lexical, redacao, 17/17)
 - 2026-09-03 - memory lint + proposta harvest (gaps do ai-memory; 15/15)
 - 2026-09-03 - camada memory FTS implementada (index/push/recall/link, BM25, 14/14)

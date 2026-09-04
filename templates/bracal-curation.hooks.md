@@ -17,8 +17,7 @@
 - Rode antes de gerar/testar quando um servidor/processo carrega a fonte em memoria (ex.: MCP server).
 - Apos (re)iniciar o processo, grave o baseline com `--update`. Fonte mudou sem restart: o gate falha.
 
-### Memory (recall cross-projeto, FTS; store `~/.orquestrador/memory/`, DEV/ manda)
+### Memory harvest (bridge pro memory nativo do core 0.2.0)
 
-- Session-start: 1 recall read-once com termos da tarefa, so se houver store; vazio -> segue.
-  `combo-maestro memory recall "<termos>" --project <nome> --max-chars 1200`
-- Promover memoria e human-in-the-loop: `combo-maestro memory push --project-path <abs>` (--apply grava).
+- Memory e do core (`orquestrador-maestro memory record|search|promote`). Combo nao duplica.
+- `combo-maestro memory harvest --project-path <abs>` colhe transcripts de sessao e propoe; --apply grava no `memory record` do core. Human-in-the-loop.

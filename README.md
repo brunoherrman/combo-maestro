@@ -15,9 +15,9 @@ O Orquestrador Maestro já entrega o combo `spec + worklog + verify + handoff + 
 | **Stale-process gate** | `stale-check` falha se o processo ou servidor rodando ficou velho em relação à fonte. |
 | **Economia de turnos** | Regra dura contra o gasto que mais dói na prática: reingestão de contexto por turno. |
 | **Cold start auto-suficiente** | Regra global de session-start e injeção de entrypoint compacto no sub frio. |
-| **Memória cross-projeto (FTS)** | `memory` replica as partes de baixo custo do [ai-memory](https://github.com/akitaonrails/ai-memory) em Node puro: páginas OKF-like + busca BM25, edges tipados, temporal e `lint`. Recall **bounded** (top-N + char-cap) — store global sem inflar token. O `DEV/` (per-projeto) segue como fonte de verdade. |
+| **Harvest de transcripts → memory do core** | O core 0.2.0 trouxe `memory` nativo, mas não colhe conhecimento dos transcripts de sessão. `memory harvest` lê os transcripts do Claude Code, extrai turnos com sinal durável (correção, decisão, fix), redige dados pessoais e **alimenta o `orquestrador-maestro memory record`** do core. Human-in-the-loop, sem LLM/API. |
 
-Conferido contra o núcleo **0.1.27**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
+Conferido contra o núcleo **0.2.0**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
 
 > **`stale-check` vs `workflow-state` do núcleo (0.1.21+).** O núcleo passou a trazer `workflow-lock`/`workflow-state` (digest SHA-256 de artefato, drift bloqueia ops). Escopos **diferentes e complementares**: `workflow-state` guarda o digest de um artefato/lock; `stale-check` do combo compara um **processo ou servidor rodando** (que carregou a fonte em memória, ex.: MCP server) contra a fonte em disco. Enquanto o núcleo não cobrir o processo-em-RAM, `stale-check` fica.
 
@@ -30,6 +30,7 @@ O combo se autoaposenta por partes, conforme o núcleo absorve:
 | `budget` | `orquestrador-maestro context brief --project-path <abs> --max-chars N` | 0.1.14 / 0.1.18 |
 | skeletons de `DEV/` do `init-entrypoint` | `orquestrador-maestro init-dev` (o `init-entrypoint` agora delega a ele) | 0.1.18 |
 | ordem de leitura no session-start | `~/.orquestrador/PERSISTENCE.md` | Unreleased 2026-07-28 |
+| store/recall/lint próprios do `memory` (BM25, edges) | `orquestrador-maestro memory record\|search\|promote` (nativo, per-repo) | 0.2.0 |
 
 `combo-maestro budget` continua existindo só para falhar alto e apontar o substituto, em vez de quebrar hooks antigos em silêncio.
 
@@ -37,7 +38,7 @@ Princípio comum: **regras boas não podem depender de você lembrar**.
 
 ## Requisitos
 
-- **Orquestrador Maestro instalado** (testado contra o núcleo **0.1.27**)
+- **Orquestrador Maestro instalado** (testado contra o núcleo **0.2.0**)
   ```bash
   npm install -g @iapro/orquestrador-maestro-cli
   orquestrador-maestro install
@@ -107,36 +108,29 @@ combo-maestro setup-bracal    [--cli codex] [--model gpt-5.4-mini]
 combo-maestro delegate        "<tarefa>" [--cli codex|claude|mimo|gemini|grok] [--model MODEL] [--allow-api] [--no-context]
 combo-maestro init-entrypoint [--project-path PATH] [--dry-run]
 
-combo-maestro memory index
-combo-maestro memory push     [--project-path PATH] [--keep N] [--pick id1,id2] [--apply]
-combo-maestro memory recall   "<query>" [--project P] [--type T] [--as-of DATE] [--top N] [--max-chars C]
-combo-maestro memory link     <id-a> <causes|fixes|contradicts> <id-b>
-combo-maestro memory lint
-combo-maestro memory harvest  [--project-path PATH] [--last N] [--transcripts DIR] [--pick ids] [--apply]
+combo-maestro memory harvest  [--project-path PATH] [--last N] [--transcripts DIR] [--pick 1,3] [--apply]
 
 combo-maestro log             [--lines N]
 ```
 
-## Camada de memoria (FTS cross-projeto)
+## Memory harvest (bridge para o memory nativo do core)
 
-Replica as partes de baixo custo do [ai-memory](https://github.com/akitaonrails/ai-memory) em Node puro — sem daemon, sem dependencia externa, sem API cobrada. Da o recall **cross-projeto** que o `DEV/` (per-projeto) nao entrega.
+O núcleo **0.2.0** trouxe `memory` nativo (`orquestrador-maestro memory record|search|show|timeline|promote|stats`), per-repositório e git-integrado. **O combo não duplica isso** — a camada de store/recall/lint própria (BM25, edges) foi **aposentada** para não criar fonte dupla de verdade.
 
-- **Store**: `~/.orquestrador/memory/` — uma pagina `<slug>.md` por fato (frontmatter OKF-like: `id`, `type`, `project`, `created`, `links`, `tags`) + `INDEX.json` (indice invertido BM25 + grafo de edges).
-- **Busca**: full-text BM25. Sem embeddings (decisao: recall bom pra escala pessoal sem processo nem modelo de 87MB).
-- **Temporal**: `--as-of DATE` recupera o estado do conhecimento ate aquela data.
-- **Edges tipados**: `memory link <a> fixes|causes|contradicts <b>`.
-- **Lint**: `memory lint` varre o store inteiro — edge quebrado (alvo inexistente), edge invalido, id duplicado, `contradicts` pendente. Falha (exit 1) em erro, entao serve de gate.
-- **Push human-in-the-loop**: `memory push` deriva candidatas do balde CINZA do WORKLOG (reusa o `curate`); so grava com `--apply` (ou `--pick` para subconjunto). Nunca escreve sem sua aprovacao, nunca toca no WORKLOG.
-- **Harvest (cross-session synthesis)**: `memory harvest` le os ultimos N transcripts de sessao do Claude Code (`~/.claude/projects/<slug>/*.jsonl`, read-only) e propoe turnos do usuario com SINAL de conhecimento duravel (correcao, decisao, fix confirmado). Lexical, entao **ruidoso de proposito** — so propoe, voce revisa o texto literal e grava com `--apply`/`--pick`. Redige home/username e tokens antes de propor. Sem LLM, sem API, nao toca no orquestrador.
+O que o memory do core **não** faz é colher conhecimento dos **transcripts de sessão**. É só isso que o combo mantém:
 
-### Travas
+```bash
+combo-maestro memory harvest --project-path . --last 5
+```
 
-- **DEV/ e a fonte de verdade; a memoria e derivada.** Sem write-back para `DEV/`.
-- **Recall e sempre bounded** (top-N + `--max-chars`). O `INDEX.json` fica em disco e e lido pela CLI, nunca injetado no contexto do modelo — um store global cresce sem inflar o custo de token da sessao.
-- **Namespace por projeto** (`project:` no frontmatter): o recall so cruza projetos com `--project` explicito, para nao vazar contexto entre clientes.
-- **Degrada gracioso**: sem store/indice, `recall` volta vazio e a sessao segue.
+- **Fonte**: transcripts do Claude Code (`~/.claude/projects/<slug>/*.jsonl`), **read-only**.
+- **Extração**: turnos do usuário com SINAL de conhecimento durável (correção, decisão, fix confirmado, risco) por heurística lexical. Ruidoso de propósito.
+- **Bridge**: com `--apply` (ou `--pick 1,3`), cada candidata aprovada vira uma observação no core via `orquestrador-maestro memory record --type <decision|discovery|implementation|risk>`. Sem `--apply`, só propõe.
+- **Human-in-the-loop**: você revisa o TEXTO LITERAL antes de gravar. Nunca grava sozinho.
+- **Privacidade**: `redactSnippet` mascara home/username em paths e tokens (`sk-`/`xai-`/`ghp_`/`AKIA`/hex longo) **antes** de propor.
+- **Aditivo**: subcomando novo, sem LLM/API, sem daemon. Não injeta linha de hooks (zero orçamento). Não toca no `~/.orquestrador` além de chamar o `memory record` do core.
 
-O bloco de hooks injeta um `recall` read-once no session-start (termos da tarefa/projeto atual), so quando ha store.
+`memory index|push|recall|link|lint` foram aposentados e apontam para o memory nativo do core. Depois de colher, consulte com `orquestrador-maestro memory search --project . --unverified`.
 
 ## Curadoria de worklog
 
