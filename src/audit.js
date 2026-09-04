@@ -76,4 +76,68 @@ function pad(value, width) {
   return str.length >= width ? str.slice(0, width) : str + " ".repeat(width - str.length);
 }
 
-module.exports = { logDelegation, showLog, logFile };
+function fmtTokens(n) {
+  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `${(n / 1e3).toFixed(1)}k`;
+  return String(n);
+}
+
+// Unified TEAM overview from everything the combo actually records: per-agent
+// activity + token usage (from local logs), the delegate tally, and the core
+// memory count. AionUI's own runs live in its private DB and are not read here.
+function teamAudit(options) {
+  const { spawnSync } = require("node:child_process");
+  const { shellCommandLine } = require("./lib.js");
+  const quota = require("./quota.js");
+  const days = Number.parseInt(options.days, 10) > 0 ? Number.parseInt(options.days, 10) : 7;
+  const sinceMs = Date.now() - days * 24 * 60 * 60 * 1000;
+  const projectRoot = path.resolve(options.projectPath || process.cwd());
+
+  console.log(`combo-maestro audit — visao do TEAM (ultimos ${days}d)\n`);
+
+  // 1) Atividade + uso por agente (logs locais).
+  const claude = quota.scanClaude(sinceMs);
+  const codex = quota.scanCodex(sinceMs);
+  console.log("Atividade por agente (uso, dos logs locais):");
+  console.log(`  ${pad("agente", 10)}${pad("sessoes", 9)}tokens`);
+  console.log(`  ${pad("claude", 10)}${pad(claude.sessions, 9)}${fmtTokens(claude.tokens)}`);
+  console.log(`  ${pad("codex", 10)}${pad(codex.sessions, 9)}${fmtTokens(codex.tokens)}`);
+
+  // 2) Delegacoes (Modo B) registradas.
+  const file = logFile();
+  let delegations = 0;
+  const counts = {};
+  if (fs.existsSync(file)) {
+    for (const row of fs.readFileSync(file, "utf8").split("\n").filter(Boolean)) {
+      const ts = row.split("\t")[0];
+      if (ts && Date.parse(ts) >= sinceMs) {
+        delegations += 1;
+        const st = row.split("\t")[4] || "?";
+        counts[st] = (counts[st] || 0) + 1;
+      }
+    }
+  }
+  console.log(`\nDelegacoes via 'delegate' (Modo B, no periodo): ${delegations}`);
+  if (delegations) console.log("  por status: " + Object.entries(counts).map(([k, v]) => `${k}=${v}`).join("  "));
+
+  // 3) Memory do core (observacoes deste projeto).
+  // shell:true needs one pre-quoted line (DEP0190), not an args array.
+  const line = shellCommandLine("orquestrador-maestro", ["memory", "stats", "--project", projectRoot]);
+  const res = spawnSync(line, { shell: true, encoding: "utf8" });
+  let mem = "indisponivel";
+  try {
+    const j = JSON.parse(res.stdout);
+    mem = `${j.total} observacoes (verified=${j.verified || 0})`;
+  } catch {
+    /* core memory optional */
+  }
+  console.log(`\nMemory do core (projeto): ${mem}`);
+
+  console.log(
+    "\nNota: uso e das sessoes que logam token em arquivo (Claude, Codex)." +
+    " Modo A in-session (Haiku/Flash) e runs do AionUI (SQLite proprio) nao entram aqui."
+  );
+}
+
+module.exports = { logDelegation, showLog, logFile, teamAudit };

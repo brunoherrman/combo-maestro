@@ -13,7 +13,7 @@ const initEntrypoint = require("../src/init-entrypoint.js");
 const memory = require("../src/memory.js");
 const statusline = require("../src/statusline.js");
 const quota = require("../src/quota.js");
-const { showLog } = require("../src/audit.js");
+const { showLog, teamAudit } = require("../src/audit.js");
 
 const VERSION = require("../package.json").version;
 
@@ -53,6 +53,9 @@ Uso:
       ledger de USO por provider (tokens frescos + cache-read; $ so com --cost),
       lido dos logs locais (transcripts do Claude, sessoes do Codex).
       Nao e window de rate-limit (esse e o statusline / app do AionUI).
+  combo-maestro audit     [--days N] [--project-path PATH]
+      visao unificada do TEAM: atividade/uso por agente (Claude+Codex),
+      delegacoes registradas e memory do core. AionUI (SQLite) fica de fora.
   combo-maestro log       [--lines N]
   combo-maestro version
 
@@ -198,6 +201,9 @@ function main() {
       return;
     case "quota":
       quota(options);
+      return;
+    case "audit":
+      teamAudit(options);
       return;
     case "delegate":
       if (!options.task && options._.length > 0) {

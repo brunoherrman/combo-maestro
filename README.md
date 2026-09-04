@@ -110,6 +110,8 @@ combo-maestro init-entrypoint [--project-path PATH] [--dry-run]
 
 combo-maestro memory harvest  [--project-path PATH] [--last N] [--transcripts DIR] [--pick 1,3] [--apply]
 
+combo-maestro quota           [--days N | --since DATE] [--provider claude|codex] [--cost]
+combo-maestro audit           [--days N] [--project-path PATH]
 combo-maestro log             [--lines N]
 ```
 
@@ -262,8 +264,21 @@ O combo é agnóstico de UI: ele injeta regras no `~/.orquestrador`, que é a fo
 Peças em avaliação (abrir spec em `DEV/SPECS/` antes):
 
 - **Cross-agent harvest**: estender o harvest além do Claude Code para transcripts de Codex/Gemini/AionUI, unificando a síntese cross-sessão no memory do core.
-- **Team audit**: `combo-maestro log` agregando delegate + runs do TEAM.
 - **Window % dos outros providers**: só viável raspando o SQLite do AionUI (`node:sqlite`, frágil) — descartado por ora; o app do AionUI já mostra.
+
+## Team audit — `combo-maestro audit`
+
+Visão unificada do que o combo **realmente registra** no TEAM, num resumo só:
+
+```bash
+combo-maestro audit --days 7
+```
+
+- **Atividade/uso por agente**: sessões + tokens de Claude e Codex (dos logs locais).
+- **Delegações** via `delegate` (Modo B) no período, por status.
+- **Memory do core**: nº de observações do projeto.
+
+Honesto: só entra o que loga em arquivo. Modo A in-session (Haiku/Flash) e os runs do próprio AionUI (SQLite dele) ficam de fora.
 
 ## Descontinuação
 

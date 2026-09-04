@@ -273,6 +273,16 @@ test("quota CLI runs and separates fresh tokens from cache-read", () => {
   assert.match(withCost.stdout, /~\$ ref/);
 });
 
+test("audit prints a unified TEAM overview without DEP warnings", () => {
+  const res = runCli(["audit", "--days", "7"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /visao do TEAM/);
+  assert.match(res.stdout, /Atividade por agente/);
+  assert.match(res.stdout, /Delegacoes via/);
+  assert.match(res.stdout, /Memory do core/);
+  assert.doesNotMatch(res.stderr, /DEP0190/); // shellCommandLine avoids the warning
+});
+
 test("quota fmtTokens is compact and deterministic", () => {
   const quota = require(path.join(repoRoot, "src", "quota.js"));
   assert.equal(quota.fmtTokens(500), "500");
