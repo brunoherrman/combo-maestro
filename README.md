@@ -227,6 +227,8 @@ Ligue em `~/.claude/settings.json`:
 { "statusLine": { "type": "command", "command": "combo-maestro statusline" } }
 ```
 
+**Já tem um statusline?** (Claude Code só aceita um comando.) Grave o comando do seu statusline atual em `~/.orquestrador/statusline-prepend` — o combo roda ele com o mesmo JSON e põe a saída **acima** da linha de quota, sem clobber e sem quoting no `settings.json`. Ex.: `powershell ... caveman-statusline.ps1`.
+
 Para os **outros providers do AionUI TEAM** (codex/gemini/grok) ainda não há % de quota — sem a API de cada vendor não dá pra saber o limite. Um ledger compartilhado com contadores está no roadmap.
 
 ## AionUI e times multi-agente

@@ -1,5 +1,10 @@
 "use strict";
 
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
+
 // combo-maestro statusline: a Claude Code status line that surfaces the REAL
 // usage quota — the 5-hour and 7-day rate-limit windows — plus context fill and
 // session cost, and flags the 25/50/75/90% thresholds. No budget to configure:
@@ -101,6 +106,27 @@ function readStdin() {
   });
 }
 
+// Optional composition: if ~/.orquestrador/statusline-prepend holds a command,
+// run it with the SAME session JSON on stdin and put its output first. Lets the
+// combo quota line coexist with an existing status line (e.g. caveman) without
+// clobbering it and without quoting a command inside settings.json.
+function prependLine(raw) {
+  const file = path.join(os.homedir(), ".orquestrador", "statusline-prepend");
+  let cmd;
+  try {
+    cmd = fs.readFileSync(file, "utf8").trim();
+  } catch {
+    return "";
+  }
+  if (!cmd) return "";
+  try {
+    const res = spawnSync(cmd, { shell: true, input: raw, encoding: "utf8", timeout: 3000 });
+    return (res.stdout || "").replace(/\n+$/, "");
+  } catch {
+    return "";
+  }
+}
+
 module.exports = async function statusline() {
   const raw = await readStdin();
   let input = {};
@@ -113,7 +139,9 @@ module.exports = async function statusline() {
       return;
     }
   }
-  process.stdout.write(render(input));
+  const before = prependLine(raw);
+  const quota = render(input);
+  process.stdout.write(before ? `${before}\n${quota}` : quota);
 };
 
 // Exposed for tests.
