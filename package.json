@@ -5,15 +5,7 @@
   "bin": {
     "combo-maestro": "bin/combo-maestro.js"
   },
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "bin/",
-    "src/",
-    "templates/",
-    "README.md"
-  ],
+  "private": true,
   "engines": {
     "node": ">=18"
   },

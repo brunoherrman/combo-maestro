@@ -73,8 +73,12 @@ Sem `PERSISTENCE.md` instalado, o bloco cai no comportamento anterior (`DEV/SPEC
 
 ## Instalação
 
+Não publicado no registro npm — instala direto do GitHub (link local, sem registro).
+
 ```bash
-npm install -g @brunoherrman/combo-maestro
+git clone https://github.com/brunoherrman/combo-maestro.git
+cd combo-maestro
+npm link
 combo-maestro install
 combo-maestro verify
 ```
@@ -212,7 +216,7 @@ Quando o Orquestrador Maestro absorver essas peças nativamente:
 
 ```bash
 combo-maestro uninstall
-npm uninstall -g @brunoherrman/combo-maestro
+npm unlink -g @brunoherrman/combo-maestro
 ```
 
 ## Créditos
