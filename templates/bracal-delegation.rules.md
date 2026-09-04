@@ -2,7 +2,13 @@
 
 > Bloco aditivo do combo-maestro. Cobre o que o nucleo ainda nao forca: delegar trabalho mecanico ao tier barato do mesmo ecossistema.
 
-Regra dura: trabalho bracal (mecanico, bulk, busca, triagem, edicao mecanica) NAO roda no tier caro. Cai no tier barato do proprio CLI em uso. Maestro e bracal sao um par dentro do mesmo vendor:
+Regra: trabalho bracal (mecanico, bulk, busca, triagem, edicao mecanica) e CANDIDATO ao tier barato do proprio CLI — mas NAO delegue automatico. PERGUNTE ao maestro antes.
+
+GATE HUMANO (sistema propoe, maestro aprova): ao detectar bracal que passa nos dois filtros abaixo, PARE e pergunte antes de delegar. Formato:
+  "Isto parece bracal (mecanico/volumoso): <tarefa curta>. Delegar ao <tier barato sugerido, ex. Haiku>? [1] delegar  [2] outro modelo (qual?)  [3] faco inline"
+Espere a resposta. So delega com OK explicito; o maestro pode trocar o modelo na hora. Sem resposta clara -> faz inline. Tarefa minuscula nem pergunta: faz inline direto.
+
+Maestro e bracal sao um par dentro do mesmo vendor (sugestao default do tier barato):
 
 - Claude Code: maestro = Opus; bracal = Sonnet/Haiku.
 - Codex: maestro = GPT-5/Codex; bracal = codex-mini.
@@ -22,7 +28,7 @@ Antes de delegar, dois filtros. Os dois precisam dar SIM:
    - SIM: varrer dezenas de arquivos, refactor mecanico amplo, bulk de texto longo, muitas checagens repetitivas.
    - NAO: triagem de poucos itens -> maestro faz inline; mandar para o mini frio sai mais caro.
 
-Resumo: bracal verificavel barato e volumoso -> mini. Bracal pequeno -> inline mesmo sendo mecanico. Nao delegar tarefa minuscula nao e violar a regra; e a regra.
+Resumo: bracal verificavel barato e volumoso -> PROPOR delegacao (e esperar OK). Bracal pequeno -> inline mesmo sendo mecanico, sem perguntar. Nao delegar tarefa minuscula nao e violar a regra; e a regra.
 
 Verificacao do bracal em camadas (barato -> caro): (1) gate deterministico; (2) script build/lint/test; (3) receipt obrigatorio (o que mudou + file:line + diff + resultado, nunca so "pronto"); (4) spot-check do maestro.
 

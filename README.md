@@ -10,7 +10,7 @@ O Orquestrador Maestro já entrega o combo `spec + worklog + verify + handoff + 
 
 | Lacuna | O que o combo-maestro adiciona |
 |---|---|
-| **Delegação de braçal cheap-tier** | Regra + broker: trabalho mecânico cai no tier barato do **mesmo CLI** (Claude→Haiku, Codex→gpt-5.4-mini, Gemini→Flash), sempre por **assinatura, nunca API**, com heurística "verificável barato?" e fallback. |
+| **Delegação de braçal cheap-tier (human-in-the-loop)** | Regra + broker: ao detectar trabalho mecânico verificável e volumoso, o agente **pergunta ao maestro antes** de delegar (delegar ao Haiku? outro modelo? inline?) — sistema propõe, você aprova. Com OK, cai no tier barato do **mesmo CLI** (Claude→Haiku, Codex→gpt-5.4-mini, Gemini→Flash), sempre por **assinatura, nunca API**. |
 | **Curadoria human-in-the-loop** | `curate` separa o worklog em baldes e mostra o texto literal das cinzas para decisão humana. |
 | **Stale-process gate** | `stale-check` falha se o processo ou servidor rodando ficou velho em relação à fonte. |
 | **Economia de turnos** | Regra dura contra o gasto que mais dói na prática: reingestão de contexto por turno. |
@@ -176,7 +176,7 @@ Os dois filtros precisam dar `SIM`:
 1. **Verificável barato?**
 2. **Volumoso o bastante para pagar o cold-start?**
 
-Braçal verificável e volumoso vai para o mini. Braçal pequeno fica inline.
+Passando nos dois, o agente **não delega sozinho** — ele **pergunta ao maestro** (`delegar ao Haiku? outro modelo? faço inline?`) e espera o OK. Sistema propõe, você aprova; pode trocar o modelo na hora. Braçal pequeno fica inline sem perguntar.
 
 ## Economia de turnos
 
