@@ -3,7 +3,7 @@
   "version": "0.11.0",
   "description": "Complemento do Orquestrador Maestro: delegacao de bracal cheap-tier, curadoria de worklog human-in-the-loop, stale-process gate e camada de memoria FTS cross-projeto (BM25, sem daemon/API). Aditivo e marcado; auto-aposenta quando o nucleo absorver.",
   "bin": {
-    "combo-maestro": "./bin/combo-maestro.js"
+    "combo-maestro": "bin/combo-maestro.js"
   },
   "publishConfig": {
     "access": "public"
