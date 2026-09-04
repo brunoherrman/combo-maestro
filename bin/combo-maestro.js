@@ -11,6 +11,7 @@ const delegate = require("../src/delegate.js");
 const setupBracal = require("../src/setup-bracal.js");
 const initEntrypoint = require("../src/init-entrypoint.js");
 const memory = require("../src/memory.js");
+const statusline = require("../src/statusline.js");
 const { showLog } = require("../src/audit.js");
 
 const VERSION = require("../package.json").version;
@@ -42,6 +43,11 @@ Uso:
       colhe turnos com sinal dos transcripts e grava no memory do core via
       'orquestrador-maestro memory record'. Propoe por default; --apply grava.
       (index/push/recall/link/lint aposentados -> use o memory nativo do core.)
+  combo-maestro statusline
+      statusline do Claude Code: mostra a quota da janela de 5h e 7d (%,
+      reset), contexto e custo, com cor nos limiares 25/50/75/90. Le o JSON
+      da sessao no stdin. Ligue em ~/.claude/settings.json:
+        "statusLine": { "type": "command", "command": "combo-maestro statusline" }
   combo-maestro log       [--lines N]
   combo-maestro version
 
@@ -174,6 +180,12 @@ function main() {
       memory(sub, memOptions);
       return;
     }
+    case "statusline":
+      // Reads Claude Code session JSON on stdin; async, self-contained.
+      statusline().catch((e) => {
+        process.stderr.write(`statusline: ${e.message}\n`);
+      });
+      return;
     case "delegate":
       if (!options.task && options._.length > 0) {
         options.task = options._[0];

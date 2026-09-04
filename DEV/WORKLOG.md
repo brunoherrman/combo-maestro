@@ -20,6 +20,16 @@
 - Risks: harvest so aprovado como proposta; se implementado, ruido lexical e privacidade de transcript sao os pontos criticos
 - Next context: decisao do maestro sobre harvest (3 perguntas no fim do MEMORY-HARVEST.md); publicar 0.11.0 quando quiser
 
+## 2026-09-04 - delegacao ask-first + statusline de quota (5h/7d)
+
+- Spec: melhorias pedidas pelo maestro (usando AionUI TEAM): (1) delegacao braçal deve PERGUNTAR antes; (2) alerta de quota da janela de 5h no chat
+- Changed (delegacao): `templates/bracal-delegation.rules.md` — de auto-delega pra GATE HUMANO: ao detectar braçal que passa nos 2 filtros, o agente PARA e pergunta ao maestro ([1] delegar Haiku [2] outro modelo [3] inline), so delega com OK; tarefa minuscula segue inline sem perguntar. Reinjetado. README (tabela + "Quando delegar")
+- Changed (quota): novo `src/statusline.js` + comando `statusline` no bin. Le o JSON de sessao do Claude Code no stdin e mostra `rate_limits.five_hour`/`seven_day` (% livre + reset), contexto e custo, colorido nos limiares 25/50/75/90. Sem budget (o CC ja calcula). Schema confirmado na doc oficial (code.claude.com/docs/en/statusline). Degrada em versao velha sem rate_limits e em stdin vazio. README com secao + snippet de settings.json
+- Verified: `npm test` 14/14 (2 casos novos: render dos windows + cor por limiar; CLI le stdin). Smoke manual com payloads (60%/92%/legacy/vazio) OK
+- Aditivo: statusline nao gasta orçamento de hooks; delegacao so muda o texto da regra em rules.md (sem cap)
+- Risks: quota so cobre Claude Code; outros providers do TEAM precisam de ledger (roadmap). Ligar o statusline exige 1 linha em ~/.claude/settings.json (acao do maestro)
+- Next context: oferecer wire do statusline no settings; ledger multi-provider; cross-agent harvest; team audit
+
 ## 2026-09-04 - core 0.2.4 (bump + reauditoria)
 
 - Spec: nova atualizacao do nucleo (pedido do maestro) — verificar de novo

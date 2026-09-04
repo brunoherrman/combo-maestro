@@ -221,6 +221,37 @@ test("memory redactSnippet masks home paths and token-shaped strings", () => {
   assert.match(memory.redactSnippet("key sk-abcdefghijklmnop123"), /\[REDACTED\]/);
 });
 
+test("statusline renders the 5h/7d quota windows and colors by remaining", () => {
+  const statusline = require(path.join(repoRoot, "src", "statusline.js"));
+  const out = statusline.render({
+    model: { display_name: "Opus" },
+    rate_limits: { five_hour: { used_percentage: 60, resets_at: Math.floor(Date.now() / 1000) + 3600 }, seven_day: { used_percentage: 20 } },
+    context_window: { used_percentage: 40 },
+    cost: { total_cost_usd: 0.42 }
+  });
+  assert.match(out, /5h/);
+  assert.match(out, /40% livre/); // 100 - 60 used
+  assert.match(out, /7d/);
+  assert.match(out, /reset 1h00/);
+  assert.match(out, /\$0\.42/);
+
+  // Missing rate_limits (older Claude Code) -> graceful, never throws.
+  const legacy = statusline.render({ context_window: { used_percentage: 15 } });
+  assert.match(legacy, /ctx 15%/);
+  assert.doesNotMatch(statusline.render({}), /undefined/);
+
+  // colorForRemaining thresholds: low remaining = red, high = green.
+  assert.notEqual(statusline.colorForRemaining(5), statusline.colorForRemaining(80));
+});
+
+test("statusline CLI reads JSON on stdin", () => {
+  const payload = JSON.stringify({ rate_limits: { five_hour: { used_percentage: 90 } } });
+  const res = spawnSync(process.execPath, [binPath, "statusline"], { input: payload, encoding: "utf8" });
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /5h/);
+  assert.match(res.stdout, /10% livre/);
+});
+
 test("memory classifyHarvest maps only to valid core observation types", () => {
   const memory = require(path.join(repoRoot, "src", "memory.js"));
   for (const text of ["na verdade prefiro assim", "vamos usar o codex", "o build passou verde", "cuidado tem risco aqui"]) {

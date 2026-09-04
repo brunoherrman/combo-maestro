@@ -205,6 +205,30 @@ No modo shell-out do Codex, `delegate` pré-anexa um entrypoint compacto na orde
 - profile do braçal → `[profiles.bracal]` marcado no `~/.codex/config.toml`
 - memory harvest → alimenta o `orquestrador-maestro memory record` nativo (core 0.2.0+)
 
+## Quota — statusline do Claude Code (janela de 5h/7d)
+
+O alerta que mais importa não é o contexto, é a **janela de rate-limit de 5 horas** (a que estoura e trava a sessão). O Claude Code já calcula isso e passa no JSON do statusline — então **não há budget pra configurar**.
+
+```bash
+combo-maestro statusline   # lê o JSON da sessão no stdin
+```
+
+Mostra, colorido pelos limiares **25/50/75/90% restante**:
+
+- **5h** e **7d**: % livre + quanto falta pro reset (`rate_limits.five_hour/seven_day`).
+- **ctx**: quanto da janela de contexto está cheia.
+- **custo** da sessão em USD.
+
+Verde > 50% livre, amarelo 25–50%, vermelho < 25% (bold < 10%). Em versões antigas do Claude Code sem `rate_limits`, cai pro contexto sozinho.
+
+Ligue em `~/.claude/settings.json`:
+
+```json
+{ "statusLine": { "type": "command", "command": "combo-maestro statusline" } }
+```
+
+Para os **outros providers do AionUI TEAM** (codex/gemini/grok) ainda não há % de quota — sem a API de cada vendor não dá pra saber o limite. Um ledger compartilhado com contadores está no roadmap.
+
 ## AionUI e times multi-agente
 
 O combo é agnóstico de UI: ele injeta regras no `~/.orquestrador`, que é a fonte de verdade que o [AionUI](https://www.aionui.com) e qualquer cowork/TEAM coordena por cima. As peças do combo valem para o time inteiro, não só para uma sessão:
@@ -217,10 +241,11 @@ O combo é agnóstico de UI: ele injeta regras no `~/.orquestrador`, que é a fo
 
 ## Ideias / roadmap
 
-Peças em avaliação (nada implementado ainda — abrir spec em `DEV/SPECS/` antes):
+Peças em avaliação (abrir spec em `DEV/SPECS/` antes):
 
-- **Indicador de quota (25/50/75/90%)**: um ledger dep-free em `~/.orquestrador/quota.json` que conta uso por provider (claude/codex/gemini/grok), lido tanto por um statusline do Claude Code quanto pelos agentes do TEAM do AionUI, alertando nos limiares. Fonte pragmática: contagem de tokens dos próprios transcripts (o harvest já os lê).
+- **Quota multi-provider no TEAM**: `combo-maestro statusline` já cobre o Claude Code (janela de 5h/7d, dado real, sem budget). Falta o ledger compartilhado pros outros providers do AionUI TEAM (codex/gemini/grok), já que não há limite conhecido pra eles sem a API de cada vendor.
 - **Cross-agent harvest**: estender o harvest além do Claude Code para transcripts de Codex/Gemini/AionUI, unificando a síntese cross-sessão no memory do core.
+- **Team audit**: `combo-maestro log` agregando delegate + runs do TEAM.
 
 ## Descontinuação
 
