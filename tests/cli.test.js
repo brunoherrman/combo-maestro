@@ -261,6 +261,14 @@ test("statusline renders the 5h/7d quota windows and colors by remaining", () =>
 
   // colorForRemaining thresholds: low remaining = red, high = green.
   assert.notEqual(statusline.colorForRemaining(5), statusline.colorForRemaining(80));
+
+  // Threshold WARNING (not automatic): loud save alert at >=90%, milder at >=75%.
+  const at90 = statusline.render({ rate_limits: { five_hour: { used_percentage: 92 } } });
+  assert.match(at90, /SALVE O CONTEXTO/);
+  const at78 = statusline.render({ rate_limits: { seven_day: { used_percentage: 78 } } });
+  assert.match(at78, /prepare handoff/);
+  const at40 = statusline.render({ rate_limits: { five_hour: { used_percentage: 40 } } });
+  assert.doesNotMatch(at40, /⚠/);
 });
 
 test("quota CLI runs and separates fresh tokens from cache-read", () => {

@@ -60,13 +60,35 @@ function windowSegment(label, win) {
   return `${c}${label} ${bar(used)} ${remaining}% livre${RESET}${reset}`;
 }
 
+// A loud, explicit WARNING when a window is nearly spent — so the maestro can
+// summarize and save the task before the quota cuts it off. Not automatic: just
+// the alert; the human decides. Escalates at 75% and 90% used.
+function warningBanner(rl) {
+  let worst = null;
+  for (const [label, win] of [["5h", rl.five_hour], ["7d", rl.seven_day]]) {
+    if (!win || win.used_percentage == null) continue;
+    const used = Math.round(Number(win.used_percentage));
+    if (used >= 75 && (!worst || used > worst.used)) worst = { label, used, win };
+  }
+  if (!worst) return null;
+  const reset = worst.win.resets_at ? ` (${fmtReset(worst.win.resets_at)})` : "";
+  if (worst.used >= 90) {
+    return `${RED}${BOLD}⚠ JANELA ${worst.label} ${worst.used}% — SUMARIZE E SALVE O CONTEXTO JA${reset}${RESET}`;
+  }
+  return `${YELLOW}${BOLD}⚠ janela ${worst.label} ${worst.used}% — prepare handoff${reset}${RESET}`;
+}
+
 function render(input) {
   const parts = [];
+
+  const rl = input.rate_limits || {};
+  // Warning goes FIRST so it is impossible to miss at the threshold.
+  const warn = warningBanner(rl);
+  if (warn) parts.push(warn);
 
   const model = input.model && input.model.display_name;
   if (model) parts.push(`${DIM}[${model}]${RESET}`);
 
-  const rl = input.rate_limits || {};
   const five = windowSegment("5h", rl.five_hour);
   const seven = windowSegment("7d", rl.seven_day);
   if (five) parts.push(five);
