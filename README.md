@@ -229,7 +229,21 @@ Ligue em `~/.claude/settings.json`:
 
 **Já tem um statusline?** (Claude Code só aceita um comando.) Grave o comando do seu statusline atual em `~/.orquestrador/statusline-prepend` — o combo roda ele com o mesmo JSON e põe a saída **acima** da linha de quota, sem clobber e sem quoting no `settings.json`. Ex.: `powershell ... caveman-statusline.ps1`.
 
-Para os **outros providers do AionUI TEAM** (codex/gemini/grok) ainda não há % de quota — sem a API de cada vendor não dá pra saber o limite. Um ledger compartilhado com contadores está no roadmap.
+Para os **outros providers do AionUI TEAM** ainda não há **% de window** — sem a API de cada vendor não dá pra saber o limite; o próprio app do AionUI já mostra isso.
+
+### Ledger de uso (tokens/$) — `combo-maestro quota`
+
+O que dá pra unificar sem raspar nada frágil é o **uso** (não o window), lido dos logs que cada ferramenta já grava:
+
+```bash
+combo-maestro quota --days 1          # uso de hoje por provider
+combo-maestro quota --days 7 --cost   # 7 dias + estimativa rústica de $
+```
+
+- **Claude Code**: soma dos `message.usage` dos transcripts. Separa **tokens frescos** (input+cache-creation+output) do **cache-read** (re-leitura cacheada, gigante e quase de graça — fora do headline pra não enganar).
+- **Codex**: `total_tokens` (cumulativo → máximo por sessão) das sessões em `~/.codex/sessions`.
+- **$**: só com `--cost`, sobre os frescos, **preço de lista de referência — não sua fatura** (assinatura não cobra por token). Ajuste as taxas em `~/.orquestrador/quota-rates.json`.
+- **Gemini/Grok**: ainda não logam token num arquivo lido aqui → não aparecem no ledger (mostram no app do AionUI).
 
 ## AionUI e times multi-agente
 
@@ -245,9 +259,9 @@ O combo é agnóstico de UI: ele injeta regras no `~/.orquestrador`, que é a fo
 
 Peças em avaliação (abrir spec em `DEV/SPECS/` antes):
 
-- **Quota multi-provider no TEAM**: `combo-maestro statusline` já cobre o Claude Code (janela de 5h/7d, dado real, sem budget). Falta o ledger compartilhado pros outros providers do AionUI TEAM (codex/gemini/grok), já que não há limite conhecido pra eles sem a API de cada vendor.
 - **Cross-agent harvest**: estender o harvest além do Claude Code para transcripts de Codex/Gemini/AionUI, unificando a síntese cross-sessão no memory do core.
 - **Team audit**: `combo-maestro log` agregando delegate + runs do TEAM.
+- **Window % dos outros providers**: só viável raspando o SQLite do AionUI (`node:sqlite`, frágil) — descartado por ora; o app do AionUI já mostra.
 
 ## Descontinuação
 

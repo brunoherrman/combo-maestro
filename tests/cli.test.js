@@ -244,6 +244,24 @@ test("statusline renders the 5h/7d quota windows and colors by remaining", () =>
   assert.notEqual(statusline.colorForRemaining(5), statusline.colorForRemaining(80));
 });
 
+test("quota CLI runs and separates fresh tokens from cache-read", () => {
+  const res = runCli(["quota", "--days", "1"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /uso por provider/);
+  assert.match(res.stdout, /cache-read/);
+  assert.doesNotMatch(res.stdout, /\$\d/); // no dollar amount without --cost
+  const withCost = runCli(["quota", "--days", "1", "--cost"]);
+  assert.match(withCost.stdout, /~\$ ref/);
+});
+
+test("quota fmtTokens is compact and deterministic", () => {
+  const quota = require(path.join(repoRoot, "src", "quota.js"));
+  assert.equal(quota.fmtTokens(500), "500");
+  assert.equal(quota.fmtTokens(1500), "1.5k");
+  assert.equal(quota.fmtTokens(2_000_000), "2.00M");
+  assert.equal(quota.fmtTokens(3_000_000_000), "3.00B");
+});
+
 test("statusline CLI reads JSON on stdin", () => {
   const payload = JSON.stringify({ rate_limits: { five_hour: { used_percentage: 90 } } });
   const res = spawnSync(process.execPath, [binPath, "statusline"], { input: payload, encoding: "utf8" });

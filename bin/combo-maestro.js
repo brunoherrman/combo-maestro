@@ -12,6 +12,7 @@ const setupBracal = require("../src/setup-bracal.js");
 const initEntrypoint = require("../src/init-entrypoint.js");
 const memory = require("../src/memory.js");
 const statusline = require("../src/statusline.js");
+const quota = require("../src/quota.js");
 const { showLog } = require("../src/audit.js");
 
 const VERSION = require("../package.json").version;
@@ -48,6 +49,10 @@ Uso:
       reset), contexto e custo, com cor nos limiares 25/50/75/90. Le o JSON
       da sessao no stdin. Ligue em ~/.claude/settings.json:
         "statusLine": { "type": "command", "command": "combo-maestro statusline" }
+  combo-maestro quota     [--days N | --since DATE] [--provider claude|codex] [--cost]
+      ledger de USO por provider (tokens frescos + cache-read; $ so com --cost),
+      lido dos logs locais (transcripts do Claude, sessoes do Codex).
+      Nao e window de rate-limit (esse e o statusline / app do AionUI).
   combo-maestro log       [--lines N]
   combo-maestro version
 
@@ -132,7 +137,11 @@ const COMMON = {
   "--project": { key: "project", value: true },
   "--pick": { key: "pick", value: true },
   "--last": { key: "last", value: true },
-  "--transcripts": { key: "transcripts", value: true }
+  "--transcripts": { key: "transcripts", value: true },
+  "--days": { key: "days", value: true },
+  "--since": { key: "since", value: true },
+  "--cost": { key: "cost", value: false },
+  "--provider": { key: "provider", value: true }
 };
 
 function main() {
@@ -185,6 +194,9 @@ function main() {
       statusline().catch((e) => {
         process.stderr.write(`statusline: ${e.message}\n`);
       });
+      return;
+    case "quota":
+      quota(options);
       return;
     case "delegate":
       if (!options.task && options._.length > 0) {

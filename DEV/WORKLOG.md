@@ -15,10 +15,12 @@
 - Spec: melhorias pedidas pelo maestro (usando AionUI TEAM): (1) delegacao braçal deve PERGUNTAR antes; (2) alerta de quota da janela de 5h no chat
 - Changed (delegacao): `templates/bracal-delegation.rules.md` — de auto-delega pra GATE HUMANO: ao detectar braçal que passa nos 2 filtros, o agente PARA e pergunta ao maestro ([1] delegar Haiku [2] outro modelo [3] inline), so delega com OK; tarefa minuscula segue inline sem perguntar. Reinjetado. README (tabela + "Quando delegar")
 - Changed (quota): novo `src/statusline.js` + comando `statusline` no bin. Le o JSON de sessao do Claude Code no stdin e mostra `rate_limits.five_hour`/`seven_day` (% livre + reset), contexto e custo, colorido nos limiares 25/50/75/90. Sem budget (o CC ja calcula). Schema confirmado na doc oficial (code.claude.com/docs/en/statusline). Degrada em versao velha sem rate_limits e em stdin vazio. README com secao + snippet de settings.json
-- Verified: `npm test` 14/14 (2 casos novos: render dos windows + cor por limiar; CLI le stdin). Smoke manual com payloads (60%/92%/legacy/vazio) OK
-- Aditivo: statusline nao gasta orçamento de hooks; delegacao so muda o texto da regra em rules.md (sem cap)
-- Risks: quota so cobre Claude Code; outros providers do TEAM precisam de ledger (roadmap). Ligar o statusline exige 1 linha em ~/.claude/settings.json (acao do maestro)
-- Next context: oferecer wire do statusline no settings; ledger multi-provider; cross-agent harvest; team audit
+- Changed (compose): statusline suporta prepend via `~/.orquestrador/statusline-prepend` — roda o comando ali com o mesmo stdin e poe acima da linha de quota (coexiste com o caveman sem clobber). LIGADO: `settings.json` statusLine -> `combo-maestro statusline`, prepend = caveman ps1 (backup em settings.json.bak-combo). Testado: caveman + quota juntos
+- Changed (ledger): novo `src/quota.js` + comando `quota`. Le uso dos logs locais: Claude (`message.usage` dos transcripts, separa frescos input+cache-creation+output do cache-read gigante) e Codex (`total_tokens` max por sessao em ~/.codex/sessions). `$` so com `--cost` (preco de lista ref, nao fatura; taxas em quota-rates.json). Investigado: AionUI guarda tudo em SQLite opaco (sem sqlite3 no PATH) -> nao raspar (fragil, contra principio); Gemini/Grok nao logam token em arquivo. Decisao do maestro: ledger de USO, nao window
+- Verified: `npm test` 16/16 (novos: quota CLI frescos vs cache-read, fmtTokens; statusline render/CLI). Smoke real quota (Claude 38M frescos/812M cache-read, Codex 11M)
+- Aditivo: statusline/quota nao gastam orçamento de hooks; delegacao so muda texto de rules.md (sem cap)
+- Risks: window % real so Claude (statusline); outros no app do AionUI. Ledger nao pega Gemini/Grok
+- Next context: cross-agent harvest; team audit; reiniciar sessao pro novo statusLine valer
 
 ## 2026-09-04 - core 0.2.4 (bump + reauditoria)
 
