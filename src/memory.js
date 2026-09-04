@@ -446,6 +446,183 @@ function cmdLint(dir) {
   }
 }
 
+// harvest: cross-session synthesis (ai-memory parity, lexical). Reads the last N
+// Claude Code session transcripts for a project, extracts user turns that carry
+// durable-knowledge SIGNALS (corrections, decisions, confirmed fixes, repeats),
+// and PROPOSES them as memory pages. Read-only over transcripts; never writes a
+// page without --apply/--pick. Honest limits: lexical only (no model), so it is
+// noisier and shallower than an embedding-based synthesis, and transcripts carry
+// everything, so it emits only short snippets and stays human-in-the-loop.
+
+const HARVEST_SIGNALS = [
+  // correction / preference / durable rule
+  /\bna verdade\b/i, /\berrado\b/i, /\bnao (e|eh|é)\b/i, /\bcorrig/i, /\blembr/i,
+  /\bsempre\b/i, /\bnunca\b/i, /\bprefiro\b/i, /\bnao quero\b/i, /\bcuidado\b/i,
+  /\bactually\b/i, /\bwrong\b/i, /\bremember\b/i, /\balways\b/i, /\bnever\b/i,
+  // decision
+  /\bvamos (de|fazer|usar)\b/i, /\bdecid/i, /\bescolh/i, /\boptar|opcao|opção\b/i,
+  /\baposent/i, /\bvou usar\b/i,
+  // confirmed fix
+  /\bfunciona\b/i, /\bresolv/i, /\bfix\b/i, /\bpassou\b/i, /\bverde\b/i
+];
+
+// Transcripts carry everything. Before a harvested snippet is even proposed,
+// mask the obvious leaks: the user's home/username in a path, and token-shaped
+// strings. This is a safety net, not a substitute for the human review.
+function redactSnippet(text) {
+  let out = String(text);
+  const home = os.homedir();
+  if (home) out = out.split(home).join("~");
+  out = out
+    .replace(/[A-Za-z]:\\Users\\[^\\\/\s]+/gi, "~")
+    .replace(/\/(?:home|Users)\/[^\/\s]+/g, "~")
+    .replace(/\b(sk-|xai-|ghp_|gho_|AKIA)[A-Za-z0-9_-]{10,}/g, "[REDACTED]")
+    .replace(/\b[0-9a-f]{32,}\b/gi, "[REDACTED]");
+  return out;
+}
+
+function classifyHarvest(text) {
+  if (/\bcorrig|na verdade|errado|prefiro|sempre|nunca|remember|lembr/i.test(text)) return "fact";
+  if (/\bdecid|escolh|vamos (de|fazer|usar)|aposent|opcao|opção/i.test(text)) return "decision";
+  if (/\bfix|resolv|funciona|passou|verde/i.test(text)) return "fix";
+  return "fact";
+}
+
+function transcriptDir(projectPath) {
+  const slug = path.resolve(projectPath).replace(/[\\/:\s]/g, "-");
+  return path.join(os.homedir(), ".claude", "projects", slug);
+}
+
+function userTurnsFromTranscript(file) {
+  const turns = [];
+  let raw;
+  try {
+    raw = fs.readFileSync(file, "utf8");
+  } catch {
+    return turns;
+  }
+  for (const line of raw.split("\n")) {
+    if (!line.trim()) continue;
+    let o;
+    try {
+      o = JSON.parse(line);
+    } catch {
+      continue; // unknown/partial line -> skip, never throw
+    }
+    if (o.type !== "user" || !o.message) continue;
+    const c = o.message.content;
+    let text = typeof c === "string"
+      ? c
+      : Array.isArray(c)
+        ? c.filter((x) => x && x.type === "text").map((x) => x.text).join(" ")
+        : "";
+    text = String(text).trim();
+    // Drop harness-injected content (system-reminder/hook/ci blocks), slash
+    // commands, and short acks -> only real, substantive user input remains.
+    if (!text || text.startsWith("<") || text.startsWith("/")) continue;
+    if (text.split(/\s+/).length < 4) continue;
+    turns.push(text);
+  }
+  return turns;
+}
+
+function cmdHarvest(dir, options) {
+  const projectRoot = path.resolve(options.projectPath || process.cwd());
+  const tdir = options.transcripts ? path.resolve(options.transcripts) : transcriptDir(projectRoot);
+  const project = options.project || path.basename(projectRoot);
+  const last = Number.parseInt(options.last, 10) > 0 ? Number.parseInt(options.last, 10) : 5;
+
+  if (!fs.existsSync(tdir)) {
+    console.error(
+      `harvest: diretorio de transcript nao encontrado: ${tdir}\n` +
+      "Passe --transcripts <dir> se o slug do projeto for diferente."
+    );
+    process.exit(2);
+  }
+
+  const files = fs
+    .readdirSync(tdir)
+    .filter((f) => f.endsWith(".jsonl"))
+    .map((f) => path.join(tdir, f))
+    .map((f) => ({ f, mtime: fs.statSync(f).mtimeMs }))
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, last)
+    .map((x) => x.f);
+
+  if (files.length === 0) {
+    console.log(`harvest: nenhuma sessao .jsonl em ${tdir}`);
+    return;
+  }
+
+  // Collect signal-bearing turns; dedup by normalized text across sessions
+  // (repetition is itself a signal but we keep one candidate per unique turn).
+  const seen = new Set();
+  const existing = new Set(listPages(dir).map((f) => path.basename(f, ".md")));
+  const candidates = [];
+  for (const file of files) {
+    for (const text of userTurnsFromTranscript(file)) {
+      const hits = HARVEST_SIGNALS.reduce((n, re) => n + (re.test(text) ? 1 : 0), 0);
+      if (hits === 0) continue;
+      const norm = text.toLowerCase().replace(/\s+/g, " ").slice(0, 80);
+      if (seen.has(norm)) continue;
+      seen.add(norm);
+      const clean = redactSnippet(text.replace(/\s+/g, " "));
+      const snippet = clean.slice(0, 200);
+      const id = slugify(clean.split(/\s+/).slice(0, 7).join(" "));
+      if (existing.has(id)) continue; // already a page
+      candidates.push({
+        id,
+        type: classifyHarvest(text),
+        project,
+        created: todayISO(),
+        tags: [],
+        links: [],
+        hits,
+        body: snippet
+      });
+    }
+  }
+
+  candidates.sort((a, b) => b.hits - a.hits);
+
+  console.log("memory harvest (human-in-the-loop, lexical)");
+  console.log(`Project: ${project}`);
+  console.log(`Transcripts: ${files.length} sessao(oes) em ${tdir}`);
+  console.log(`Candidatas com sinal: ${candidates.length}\n`);
+  if (candidates.length === 0) {
+    console.log("Nada com sinal durable nas sessoes lidas. (push manual segue disponivel.)");
+    return;
+  }
+
+  const pick = options.pick ? new Set(String(options.pick).split(",").map((s) => s.trim())) : null;
+  for (const c of candidates) {
+    const on = !pick || pick.has(c.id);
+    console.log(`  ${on ? "[x]" : "[ ]"} ${c.id}  (type=${c.type}, sinais=${c.hits})`);
+    console.log(`      "${c.body}"`);
+  }
+
+  const apply = Boolean(options.apply);
+  if (!apply) {
+    console.log(
+      "\nNada escrito. Regra dura: sistema PROPOE, voce APROVA.\n" +
+      "Lexical = ruidoso; revise o TEXTO LITERAL acima antes de gravar.\n" +
+      `  combo-maestro memory harvest --project-path "${projectRoot}" --apply\n` +
+      `  combo-maestro memory harvest --project-path "${projectRoot}" --pick id1,id2 --apply`
+    );
+    return;
+  }
+
+  const selected = pick ? candidates.filter((c) => pick.has(c.id)) : candidates;
+  fs.mkdirSync(dir, { recursive: true });
+  let written = 0;
+  for (const c of selected) {
+    fs.writeFileSync(path.join(dir, `${c.id}.md`), serializePage(c, c.body), "utf8");
+    written += 1;
+  }
+  writeIndex(dir, buildIndex(dir));
+  console.log(`\nEscritas ${written} paginas em ${dir}. Indice reconstruido.`);
+}
+
 module.exports = function memory(sub, options) {
   const orquestrador = resolveOrquestrador(options);
   const dir = memoryDir(orquestrador);
@@ -466,10 +643,13 @@ module.exports = function memory(sub, options) {
     case "lint":
       cmdLint(dir);
       return;
+    case "harvest":
+      cmdHarvest(dir, options);
+      return;
     default:
       throw new Error(
         `subcomando memory desconhecido: ${sub || "(vazio)"}. ` +
-        "Use: index | push | recall | link | lint"
+        "Use: index | push | recall | link | lint | harvest"
       );
   }
 };
@@ -482,3 +662,4 @@ module.exports.buildIndex = buildIndex;
 module.exports.bm25Score = bm25Score;
 module.exports.slugify = slugify;
 module.exports.memoryDir = memoryDir;
+module.exports.redactSnippet = redactSnippet;

@@ -297,6 +297,44 @@ test("memory lint passes on a clean store and fails on broken edges", () => {
   assert.match(res.stdout, /edge invalido/);
 });
 
+test("memory harvest proposes signal turns, filters noise, and redacts", () => {
+  const home = makeTempDir();
+  const tdir = makeTempDir();
+  const jsonl = [
+    // real durable signal + a personal path to redact
+    JSON.stringify({ type: "user", message: { role: "user", content: "na verdade sempre use o caminho C:\\Users\\alice\\projeto para o build" } }),
+    // harness-injected content must be ignored
+    JSON.stringify({ type: "user", message: { role: "user", content: "<system-reminder>faca isso</system-reminder>" } }),
+    // short ack must be ignored
+    JSON.stringify({ type: "user", message: { role: "user", content: "sim" } }),
+    // no-signal turn must be ignored
+    JSON.stringify({ type: "user", message: { role: "user", content: "abre o arquivo de config por favor agora" } }),
+    // assistant is not a user turn
+    JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "ok" }] } })
+  ].join("\n");
+  fs.writeFileSync(path.join(tdir, "s1.jsonl"), jsonl, "utf8");
+
+  let res = runCli(["memory", "harvest", "--home-path", home, "--transcripts", tdir, "--project", "proj"]);
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /Candidatas com sinal: 1/);
+  assert.match(res.stdout, /na verdade sempre use/);
+  assert.doesNotMatch(res.stdout, /system-reminder/);
+  assert.doesNotMatch(res.stdout, /Users\\alice/); // personal path masked
+  assert.match(res.stdout, /Nada escrito/);
+
+  // Missing transcript dir aborts cleanly (exit 2), never throws.
+  res = runCli(["memory", "harvest", "--home-path", home, "--transcripts", path.join(tdir, "nope"), "--project", "proj"]);
+  assert.equal(res.status, 2);
+  assert.match(res.stderr, /transcript nao encontrado/);
+});
+
+test("memory redactSnippet masks home paths and token-shaped strings", () => {
+  const memory = require(path.join(repoRoot, "src", "memory.js"));
+  assert.match(memory.redactSnippet("veja C:\\Users\\bob\\x"), /~/);
+  assert.doesNotMatch(memory.redactSnippet("veja C:\\Users\\bob\\x"), /bob/);
+  assert.match(memory.redactSnippet("key sk-abcdefghijklmnop123"), /\[REDACTED\]/);
+});
+
 test("memory BM25 and tokenizer behave deterministically", () => {
   const memory = require(path.join(repoRoot, "src", "memory.js"));
   assert.deepEqual(memory.tokenize("O núcleo e a HOOKS.md"), ["nucleo", "hooks", "md"]);

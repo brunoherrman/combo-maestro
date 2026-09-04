@@ -12,15 +12,16 @@ This file should stay small. Refresh it after substantive work or run `orquestra
 
 ## Latest Work
 
-- Entry: 2026-09-03 - memory lint + proposta harvest (gaps do ai-memory)
-- Spec: cobrir 2 gaps do ai-memory: (2) edge lint implementado, (1) harvest como proposta
-- Changed: `memory lint` (edge quebrado/invalido, id duplicado, contradicts pendente, exit 1); `SPECS/MEMORY-HARVEST.md` (proposta, nao iniciada); help/README; camada memory base ja entregue (index/push/recall/link, BM25, `~/.orquestrador/memory/`)
-- Verified: `npm test` 15/15; smoke manual lint; `combo-maestro verify` + `orquestrador-maestro verify` passam
-- Risks: harvest so proposta (ruido lexical + privacidade de transcript); sem embeddings (opcao A); hooks 3 linhas de folga
-- Next context: decisao do maestro sobre harvest (3 perguntas em MEMORY-HARVEST.md); publicar 0.11.0 quando quiser
+- Entry: 2026-09-03 - memory harvest v1 (cross-session synthesis, lexical)
+- Spec: implementar `memory harvest` com defaults, aditivo, sem tocar no orquestrador
+- Changed: `memory harvest` le transcripts `.jsonl` do Claude Code, extrai turnos com sinal, propose-only, com `redactSnippet` mascarando home/username e tokens antes de propor; help/README/spec; NAO injeta hooks (zero orcamento). Base memory (index/push/recall/link/lint) ja entregue
+- Verified: `npm test` 17/17; smoke nos transcripts reais (extracao + mascaramento OK); `combo-maestro verify` + `orquestrador-maestro verify` passam
+- Risks: harvest lexical = ruidoso por design; mitigacao propose-only + revisao + redacao. Sem embeddings (opcao A)
+- Next context: opcional auto-propor no session-end (1 linha de hooks); publicar 0.11.0 quando quiser
 
 ## Recent Entries
 
+- 2026-09-03 - memory harvest v1 (cross-session, lexical, redacao, 17/17)
 - 2026-09-03 - memory lint + proposta harvest (gaps do ai-memory; 15/15)
 - 2026-09-03 - camada memory FTS implementada (index/push/recall/link, BM25, 14/14)
 - 2026-09-03 - limpeza pre-memory (corte "Budget", bump 0.1.27) + spec da camada memory

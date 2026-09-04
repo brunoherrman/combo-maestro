@@ -42,6 +42,7 @@ Uso:
   combo-maestro memory recall "<query>" [--project P] [--type T] [--as-of DATE] [--top N] [--max-chars C]
   combo-maestro memory link   <id-a> <causes|fixes|contradicts> <id-b>
   combo-maestro memory lint
+  combo-maestro memory harvest [--project-path PATH] [--last N] [--transcripts DIR] [--pick ids] [--apply]
   combo-maestro log       [--lines N]
   combo-maestro version
 
@@ -129,7 +130,9 @@ const COMMON = {
   "--type": { key: "type", value: true },
   "--project": { key: "project", value: true },
   "--pick": { key: "pick", value: true },
-  "--query": { key: "query", value: true }
+  "--query": { key: "query", value: true },
+  "--last": { key: "last", value: true },
+  "--transcripts": { key: "transcripts", value: true }
 };
 
 function main() {

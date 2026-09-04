@@ -108,6 +108,7 @@ combo-maestro memory push     [--project-path PATH] [--keep N] [--pick id1,id2] 
 combo-maestro memory recall   "<query>" [--project P] [--type T] [--as-of DATE] [--top N] [--max-chars C]
 combo-maestro memory link     <id-a> <causes|fixes|contradicts> <id-b>
 combo-maestro memory lint
+combo-maestro memory harvest  [--project-path PATH] [--last N] [--transcripts DIR] [--pick ids] [--apply]
 
 combo-maestro log             [--lines N]
 ```
@@ -122,6 +123,7 @@ Replica as partes de baixo custo do [ai-memory](https://github.com/akitaonrails/
 - **Edges tipados**: `memory link <a> fixes|causes|contradicts <b>`.
 - **Lint**: `memory lint` varre o store inteiro — edge quebrado (alvo inexistente), edge invalido, id duplicado, `contradicts` pendente. Falha (exit 1) em erro, entao serve de gate.
 - **Push human-in-the-loop**: `memory push` deriva candidatas do balde CINZA do WORKLOG (reusa o `curate`); so grava com `--apply` (ou `--pick` para subconjunto). Nunca escreve sem sua aprovacao, nunca toca no WORKLOG.
+- **Harvest (cross-session synthesis)**: `memory harvest` le os ultimos N transcripts de sessao do Claude Code (`~/.claude/projects/<slug>/*.jsonl`, read-only) e propoe turnos do usuario com SINAL de conhecimento duravel (correcao, decisao, fix confirmado). Lexical, entao **ruidoso de proposito** — so propoe, voce revisa o texto literal e grava com `--apply`/`--pick`. Redige home/username e tokens antes de propor. Sem LLM, sem API, nao toca no orquestrador.
 
 ### Travas
 

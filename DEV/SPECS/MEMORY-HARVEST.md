@@ -1,8 +1,9 @@
-# Proposal Spec - memory harvest (cross-session synthesis)
+# Spec - memory harvest (cross-session synthesis)
 
-> Estado: PROPOSTA. Nao iniciada. Decidir antes de codar. Nao e a spec ativa
-> (`ACTIVE.md` = camada memory, ja implementada). Este arquivo existe para o
-> maestro aprovar/recusar o escopo.
+> Estado: IMPLEMENTADO v1 (2026-09-03). Decisoes do maestro: construir com
+> defaults (sinais correcao/decisao/fix/repeticao; `--last 5`; propose-only).
+> Aditivo puro: subcomando novo da CLI, read-only sobre transcripts, nao injeta
+> hooks (nao gasta o orcamento de 80 linhas), nao toca no orquestrador.
 
 ## Goal
 
@@ -60,15 +61,17 @@ texto literal. Nunca auto-grava.
 - **Custo de token**: o scan roda na CLI, nunca injeta transcript no modelo. So a
   proposta curta chega ao humano.
 
-## Acceptance (quando/se aprovada)
+## Acceptance
 
-- [ ] harvest le transcript real e propoe candidatas com texto literal, sem gravar.
-- [ ] `--apply`/`--pick` grava paginas e reindexao; sem eles, nada escrito.
-- [ ] dedup: candidata ja existente no store nao e reproposta.
-- [ ] formato de transcript desconhecido -> aborta com mensagem clara, exit != 0.
-- [ ] nenhuma pagina gravada contem transcript inteiro; so o trecho-sinal.
-- [ ] escopo respeita `--project-path`; nao cruza projetos.
-- [ ] `npm test` cobre extracao de sinais (fixture de transcript), dedup e degradacao.
+- [x] harvest le transcript real e propoe candidatas com texto literal, sem gravar.
+- [x] `--apply`/`--pick` grava paginas e reindexao; sem eles, nada escrito.
+- [x] dedup: candidata ja existente no store (mesmo id) nao e reproposta.
+- [x] formato desconhecido/linha invalida -> pula linha; dir ausente -> exit 2 com mensagem.
+- [x] pagina gravada guarda so o snippet (<=200 chars), nunca o transcript inteiro.
+- [x] escopo respeita `--project-path`/`--transcripts`; slug per-projeto.
+- [x] REDACAO: home/username em path e tokens (sk-/xai-/ghp_/AKIA/hex longo) mascarados antes de propor (no snippet E no id).
+- [x] filtra conteudo injetado (`<...>`), slash-commands e acks curtos (<4 palavras).
+- [x] `npm test` cobre extracao de sinal, filtro de ruido, redacao e dir ausente (17/17).
 
 ## Decisoes pendentes do maestro
 
@@ -78,6 +81,6 @@ texto literal. Nunca auto-grava.
 
 ## Status
 
-- State: proposta, aguardando decisao do maestro
+- State: implementado v1, verde (17/17). Aberto: afinar sinais se o ruido incomodar; wire opcional de auto-propor no session-end (custaria linha de hooks, decisao futura).
 - Owner: Bruno Herrman
 - Last updated: 2026-09-03
