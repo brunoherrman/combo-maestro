@@ -201,8 +201,26 @@ No modo shell-out do Codex, `delegate` pré-anexa um entrypoint compacto na orde
 
 - regra de delegação de braçal → bloco marcado em `rules.md`
 - regra de economia de turnos → mesmo bloco marcado em `rules.md`
-- hooks de curadoria e stale → bloco marcado em `hooks.md`
+- hooks de curadoria, stale e memory harvest → bloco marcado em `hooks.md`
 - profile do braçal → `[profiles.bracal]` marcado no `~/.codex/config.toml`
+- memory harvest → alimenta o `orquestrador-maestro memory record` nativo (core 0.2.0+)
+
+## AionUI e times multi-agente
+
+O combo é agnóstico de UI: ele injeta regras no `~/.orquestrador`, que é a fonte de verdade que o [AionUI](https://www.aionui.com) e qualquer cowork/TEAM coordena por cima. As peças do combo valem para o time inteiro, não só para uma sessão:
+
+- **Delegação de braçal** vira política de composição do time: Leader no tier caro, Teammates no tier barato do próprio vendor, sempre por assinatura (a regra de `rules.md` já diz isso a qualquer agente que leia o contrato).
+- **Cold start** (`init-entrypoint`/entrypoint compacto) evita que cada teammate frio reingira o `DEV/` inteiro.
+- **memory harvest** colhe conhecimento durável dos transcripts e joga no memory do core — memória compartilhada entre os agentes do time.
+
+> Regra de ouro (herdada da skill `aionui-cowork-orchestration`): o AionUI **coordena**, o `~/.orquestrador` **manda**. O combo nunca reescreve config de agente; só injeta entre marcadores.
+
+## Ideias / roadmap
+
+Peças em avaliação (nada implementado ainda — abrir spec em `DEV/SPECS/` antes):
+
+- **Indicador de quota (25/50/75/90%)**: um ledger dep-free em `~/.orquestrador/quota.json` que conta uso por provider (claude/codex/gemini/grok), lido tanto por um statusline do Claude Code quanto pelos agentes do TEAM do AionUI, alertando nos limiares. Fonte pragmática: contagem de tokens dos próprios transcripts (o harvest já os lê).
+- **Cross-agent harvest**: estender o harvest além do Claude Code para transcripts de Codex/Gemini/AionUI, unificando a síntese cross-sessão no memory do core.
 
 ## Descontinuação
 
