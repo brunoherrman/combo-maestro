@@ -15,6 +15,7 @@ O Orquestrador Maestro já entrega o combo `spec + worklog + verify + handoff + 
 | **Stale-process gate** | `stale-check` falha se o processo ou servidor rodando ficou velho em relação à fonte. |
 | **Economia de turnos** | Regra dura contra o gasto que mais dói na prática: reingestão de contexto por turno. |
 | **Cold start auto-suficiente** | Regra global de session-start e injeção de entrypoint compacto no sub frio. |
+| **Memória cross-projeto (FTS)** | `memory` replica as partes de baixo custo do [ai-memory](https://github.com/akitaonrails/ai-memory) em Node puro: páginas OKF-like + busca BM25, edges tipados, temporal e `lint`. Recall **bounded** (top-N + char-cap) — store global sem inflar token. O `DEV/` (per-projeto) segue como fonte de verdade. |
 
 Conferido contra o núcleo **0.1.27**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
 
