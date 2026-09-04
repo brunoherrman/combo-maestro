@@ -20,6 +20,15 @@
 - Risks: harvest so aprovado como proposta; se implementado, ruido lexical e privacidade de transcript sao os pontos criticos
 - Next context: decisao do maestro sobre harvest (3 perguntas no fim do MEMORY-HARVEST.md); publicar 0.11.0 quando quiser
 
+## 2026-09-04 - core 0.2.4 (bump + reauditoria)
+
+- Spec: nova atualizacao do nucleo (pedido do maestro) — verificar de novo
+- Nucleo: 0.2.0 -> 0.2.4 (`npm install @latest`); reinstall regenerou contratos, COMBO reinjetado (76/80), ambos verify passam
+- Auditoria: contratos com 0 hits de combo-only (cheap-tier/subagent/stale/anti-poll/read-once); tipos de memory INTACTOS (decision/discovery/implementation/risk; note/fact invalidos) -> harvest bridge segue valido sem mudanca de codigo; stale-check segue combo-only
+- Changed: bump de docs 0.2.0 -> 0.2.4 (README, CONTEXT); CONTEXT corrigido (decisao bridge resolvida, install via git clone+npm link)
+- Verified: contratos, tipos de memory por probe (limpos depois), verifies. Sem mudanca de codigo necessaria
+- Next context: monitorar 0.2.x; stale-check e o proximo candidato se o core cobrir processo-em-RAM
+
 ## 2026-09-04 - core 0.2.0 + pivot da memory pra bridge
 
 - Spec: atualizar o nucleo pra 0.2.0 e casar o combo (pedido do maestro)

@@ -6,13 +6,13 @@
 - Tipo: CLI Node.js sem dependências externas
 - Active handoff: `HANDOFF.md`
 - Active spec: `SPECS/ACTIVE.md`
-- Núcleo Orquestrador alvo: **0.2.0** (npm e instalado local)
-- **ATENÇÃO 0.2.0**: o núcleo trouxe `memory` NATIVO (record/search/show/timeline/promote/stats/status/cleanup), per-repositório. Sobrepõe a camada `memory` do combo. Decisão de arquitetura pendente (retirar/diferenciar/bridge).
+- Núcleo Orquestrador alvo: **0.2.4** (npm e instalado local)
+- **memory NATIVO no core (0.2.0+)**: `record/search/show/timeline/promote/stats/status/cleanup`, per-repo. Decisão do maestro: **bridge** — a mecânica FTS do combo foi aposentada; sobra só `memory harvest` alimentando o `memory record` do core. Tipos válidos: decision/discovery/implementation/risk.
 - Camada aditiva: injeta blocos `<!-- COMBO-MAESTRO:BEGIN/END -->` em `~/.orquestrador/rules.md` e `hooks.md`
 
 ## Commands
 
-- Install: `npm install -g @brunoherrman/combo-maestro` (hoje roda como link global para esta pasta)
+- Install: `git clone` + `npm link` (não publicado no npm; `private:true`). Roda como link global desta pasta; update = `git pull`
 - Development: editar direto; o link global reflete na hora
 - Tests: `npm test`
 - Build: não há etapa de build

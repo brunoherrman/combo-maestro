@@ -17,7 +17,7 @@ O Orquestrador Maestro já entrega o combo `spec + worklog + verify + handoff + 
 | **Cold start auto-suficiente** | Regra global de session-start e injeção de entrypoint compacto no sub frio. |
 | **Harvest de transcripts → memory do core** | O core 0.2.0 trouxe `memory` nativo, mas não colhe conhecimento dos transcripts de sessão. `memory harvest` lê os transcripts do Claude Code, extrai turnos com sinal durável (correção, decisão, fix), redige dados pessoais e **alimenta o `orquestrador-maestro memory record`** do core. Human-in-the-loop, sem LLM/API. |
 
-Conferido contra o núcleo **0.2.0**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
+Conferido contra o núcleo **0.2.4**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
 
 > **`stale-check` vs `workflow-state` do núcleo (0.1.21+).** O núcleo passou a trazer `workflow-lock`/`workflow-state` (digest SHA-256 de artefato, drift bloqueia ops). Escopos **diferentes e complementares**: `workflow-state` guarda o digest de um artefato/lock; `stale-check` do combo compara um **processo ou servidor rodando** (que carregou a fonte em memória, ex.: MCP server) contra a fonte em disco. Enquanto o núcleo não cobrir o processo-em-RAM, `stale-check` fica.
 
@@ -38,7 +38,7 @@ Princípio comum: **regras boas não podem depender de você lembrar**.
 
 ## Requisitos
 
-- **Orquestrador Maestro instalado** (testado contra o núcleo **0.2.0**)
+- **Orquestrador Maestro instalado** (testado contra o núcleo **0.2.4**)
   ```bash
   npm install -g @iapro/orquestrador-maestro-cli
   orquestrador-maestro install
@@ -115,7 +115,7 @@ combo-maestro log             [--lines N]
 
 ## Memory harvest (bridge para o memory nativo do core)
 
-O núcleo **0.2.0** trouxe `memory` nativo (`orquestrador-maestro memory record|search|show|timeline|promote|stats`), per-repositório e git-integrado. **O combo não duplica isso** — a camada de store/recall/lint própria (BM25, edges) foi **aposentada** para não criar fonte dupla de verdade.
+O núcleo **0.2.4** trouxe `memory` nativo (`orquestrador-maestro memory record|search|show|timeline|promote|stats`), per-repositório e git-integrado. **O combo não duplica isso** — a camada de store/recall/lint própria (BM25, edges) foi **aposentada** para não criar fonte dupla de verdade.
 
 O que o memory do core **não** faz é colher conhecimento dos **transcripts de sessão**. É só isso que o combo mantém:
 
