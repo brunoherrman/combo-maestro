@@ -16,7 +16,9 @@ O Orquestrador Maestro já entrega o combo `spec + worklog + verify + handoff + 
 | **Economia de turnos** | Regra dura contra o gasto que mais dói na prática: reingestão de contexto por turno. |
 | **Cold start auto-suficiente** | Regra global de session-start e injeção de entrypoint compacto no sub frio. |
 
-Conferido contra o núcleo **0.1.19**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
+Conferido contra o núcleo **0.1.27**: `rules.md`, `hooks.md`, `maestro.md` e `PERSISTENCE.md` não têm nenhuma ocorrência de tier barato, subagent, stale/fingerprint, anti-poll ou read-once/batch.
+
+> **`stale-check` vs `workflow-state` do núcleo (0.1.21+).** O núcleo passou a trazer `workflow-lock`/`workflow-state` (digest SHA-256 de artefato, drift bloqueia ops). Escopos **diferentes e complementares**: `workflow-state` guarda o digest de um artefato/lock; `stale-check` do combo compara um **processo ou servidor rodando** (que carregou a fonte em memória, ex.: MCP server) contra a fonte em disco. Enquanto o núcleo não cobrir o processo-em-RAM, `stale-check` fica.
 
 ### Peças aposentadas
 
@@ -34,7 +36,7 @@ Princípio comum: **regras boas não podem depender de você lembrar**.
 
 ## Requisitos
 
-- **Orquestrador Maestro instalado** (testado contra o núcleo **0.1.19**)
+- **Orquestrador Maestro instalado** (testado contra o núcleo **0.1.27**)
   ```bash
   npm install -g @iapro/orquestrador-maestro-cli
   orquestrador-maestro install
@@ -99,8 +101,35 @@ combo-maestro stale-check --project-path PATH --watch DIR [--update]
 combo-maestro setup-bracal    [--cli codex] [--model gpt-5.4-mini]
 combo-maestro delegate        "<tarefa>" [--cli codex|claude|mimo|gemini|grok] [--model MODEL] [--allow-api] [--no-context]
 combo-maestro init-entrypoint [--project-path PATH] [--dry-run]
+
+combo-maestro memory index
+combo-maestro memory push     [--project-path PATH] [--keep N] [--pick id1,id2] [--apply]
+combo-maestro memory recall   "<query>" [--project P] [--type T] [--as-of DATE] [--top N] [--max-chars C]
+combo-maestro memory link     <id-a> <causes|fixes|contradicts> <id-b>
+combo-maestro memory lint
+
 combo-maestro log             [--lines N]
 ```
+
+## Camada de memoria (FTS cross-projeto)
+
+Replica as partes de baixo custo do [ai-memory](https://github.com/akitaonrails/ai-memory) em Node puro — sem daemon, sem dependencia externa, sem API cobrada. Da o recall **cross-projeto** que o `DEV/` (per-projeto) nao entrega.
+
+- **Store**: `~/.orquestrador/memory/` — uma pagina `<slug>.md` por fato (frontmatter OKF-like: `id`, `type`, `project`, `created`, `links`, `tags`) + `INDEX.json` (indice invertido BM25 + grafo de edges).
+- **Busca**: full-text BM25. Sem embeddings (decisao: recall bom pra escala pessoal sem processo nem modelo de 87MB).
+- **Temporal**: `--as-of DATE` recupera o estado do conhecimento ate aquela data.
+- **Edges tipados**: `memory link <a> fixes|causes|contradicts <b>`.
+- **Lint**: `memory lint` varre o store inteiro — edge quebrado (alvo inexistente), edge invalido, id duplicado, `contradicts` pendente. Falha (exit 1) em erro, entao serve de gate.
+- **Push human-in-the-loop**: `memory push` deriva candidatas do balde CINZA do WORKLOG (reusa o `curate`); so grava com `--apply` (ou `--pick` para subconjunto). Nunca escreve sem sua aprovacao, nunca toca no WORKLOG.
+
+### Travas
+
+- **DEV/ e a fonte de verdade; a memoria e derivada.** Sem write-back para `DEV/`.
+- **Recall e sempre bounded** (top-N + `--max-chars`). O `INDEX.json` fica em disco e e lido pela CLI, nunca injetado no contexto do modelo — um store global cresce sem inflar o custo de token da sessao.
+- **Namespace por projeto** (`project:` no frontmatter): o recall so cruza projetos com `--project` explicito, para nao vazar contexto entre clientes.
+- **Degrada gracioso**: sem store/indice, `recall` volta vazio e a sessao segue.
+
+O bloco de hooks injeta um `recall` read-once no session-start (termos da tarefa/projeto atual), so quando ha store.
 
 ## Curadoria de worklog
 

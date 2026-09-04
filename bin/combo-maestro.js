@@ -10,6 +10,7 @@ const curate = require("../src/curate.js");
 const delegate = require("../src/delegate.js");
 const setupBracal = require("../src/setup-bracal.js");
 const initEntrypoint = require("../src/init-entrypoint.js");
+const memory = require("../src/memory.js");
 const { showLog } = require("../src/audit.js");
 
 const VERSION = require("../package.json").version;
@@ -17,11 +18,12 @@ const VERSION = require("../package.json").version;
 function printHelp() {
   console.log(`combo-maestro ${VERSION} - complemento do Orquestrador Maestro
 
-Cobre apenas o que o nucleo (0.1.19) ainda nao faz:
+Cobre apenas o que o nucleo (0.1.27) ainda nao faz:
   - delegacao de bracal cheap-tier (regra injetada)
   - curadoria de worklog human-in-the-loop (mostra o cru, voce aprova)
   - stale-process gate (fingerprint fonte vs processo rodando)
   - travas de custo por turno (read-once, batch, anti-poll em job longo)
+  - memory: recall cross-projeto FTS (BM25), store local, sem daemon/API
 
 Aposentado (o nucleo absorveu):
   - budget -> orquestrador-maestro context brief
@@ -35,6 +37,11 @@ Uso:
   combo-maestro setup-bracal [--cli codex] [--model gpt-5.4-mini]
   combo-maestro delegate  "<tarefa>" [--cli codex|claude|mimo|gemini|grok] [--model MODEL] [--allow-api] [--no-context]
   combo-maestro init-entrypoint [--project-path PATH] [--dry-run]
+  combo-maestro memory index
+  combo-maestro memory push   [--project-path PATH] [--keep N] [--pick id1,id2] [--apply]
+  combo-maestro memory recall "<query>" [--project P] [--type T] [--as-of DATE] [--top N] [--max-chars C]
+  combo-maestro memory link   <id-a> <causes|fixes|contradicts> <id-b>
+  combo-maestro memory lint
   combo-maestro log       [--lines N]
   combo-maestro version
 
@@ -115,7 +122,14 @@ const COMMON = {
   "--task": { key: "task", value: true },
   "--allow-api": { key: "allowApi", value: false },
   "--no-context": { key: "noContext", value: false },
-  "--lines": { key: "lines", value: true }
+  "--lines": { key: "lines", value: true },
+  "--as-of": { key: "asOf", value: true },
+  "--top": { key: "top", value: true },
+  "--max-chars": { key: "maxChars", value: true },
+  "--type": { key: "type", value: true },
+  "--project": { key: "project", value: true },
+  "--pick": { key: "pick", value: true },
+  "--query": { key: "query", value: true }
 };
 
 function main() {
@@ -157,6 +171,12 @@ function main() {
     case "init-entrypoint":
       initEntrypoint(options);
       return;
+    case "memory": {
+      const sub = rest[0];
+      const memOptions = parseArgs(rest.slice(1), COMMON);
+      memory(sub, memOptions);
+      return;
+    }
     case "delegate":
       if (!options.task && options._.length > 0) {
         options.task = options._[0];

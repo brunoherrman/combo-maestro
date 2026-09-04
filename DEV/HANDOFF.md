@@ -4,7 +4,7 @@ This file should stay small. Refresh it after substantive work or run `orquestra
 
 ## Snapshot
 
-- Updated: 2026-08-09
+- Updated: 2026-09-03
 - Read order: `INDEX.md` -> `HANDOFF.md` -> `CONTEXT.md` -> `SPECS/ACTIVE.md`
 - Active spec: `SPECS/ACTIVE.md`
 - Verification source: `VERIFY.md`
@@ -12,15 +12,18 @@ This file should stay small. Refresh it after substantive work or run `orquestra
 
 ## Latest Work
 
-- Entry: 2026-08-09 - aposentadoria parcial e correção de injeção de shell
-- Spec: aplicar as decisões sobre `init-entrypoint` e `budget` diante da absorção pelo núcleo 0.1.19
-- Changed: `init-entrypoint` delega o `DEV/` ao `init-dev` do núcleo; `budget` aposentado apontando `context brief`; ordem do entrypoint alinhada ao `PERSISTENCE.md`; args de shell pré-quotados em `delegate` e `init-entrypoint`
-- Verified: `npm test` 8/8; projeto gerado pelo `init-entrypoint` passa no `check-dev-gates`; `combo-maestro verify` e `orquestrador-maestro verify` passaram; `doctor` com `IssueCount: 0`
-- Risks: `shellQuote` cobre cmd.exe e sh POSIX, não PowerShell como shell padrão; `curate` e `stale-check` sem cobertura dedicada
-- Next context: reportar ao Bolzan o bug de `--project-path` relativo no 0.1.19; avaliar publicar 0.10.0
+- Entry: 2026-09-03 - memory lint + proposta harvest (gaps do ai-memory)
+- Spec: cobrir 2 gaps do ai-memory: (2) edge lint implementado, (1) harvest como proposta
+- Changed: `memory lint` (edge quebrado/invalido, id duplicado, contradicts pendente, exit 1); `SPECS/MEMORY-HARVEST.md` (proposta, nao iniciada); help/README; camada memory base ja entregue (index/push/recall/link, BM25, `~/.orquestrador/memory/`)
+- Verified: `npm test` 15/15; smoke manual lint; `combo-maestro verify` + `orquestrador-maestro verify` passam
+- Risks: harvest so proposta (ruido lexical + privacidade de transcript); sem embeddings (opcao A); hooks 3 linhas de folga
+- Next context: decisao do maestro sobre harvest (3 perguntas em MEMORY-HARVEST.md); publicar 0.11.0 quando quiser
 
 ## Recent Entries
 
+- 2026-09-03 - memory lint + proposta harvest (gaps do ai-memory; 15/15)
+- 2026-09-03 - camada memory FTS implementada (index/push/recall/link, BM25, 14/14)
+- 2026-09-03 - limpeza pre-memory (corte "Budget", bump 0.1.27) + spec da camada memory
 - 2026-08-09 - aposentadoria de `budget`; `init-entrypoint` delega ao núcleo; fix de injeção de shell
 - 2026-08-08 - núcleo 0.1.19; DEV migrado para schema canônico
 - 2026-07-28 - núcleo no Unreleased; alinhamento com `PERSISTENCE.md`
