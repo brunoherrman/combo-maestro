@@ -136,6 +136,27 @@ combo-maestro memory harvest --project-path . --last 5
 
 `memory index|push|recall|link|lint` foram aposentados e apontam para o memory nativo do core. Depois de colher, consulte com `orquestrador-maestro memory search --project . --unverified`.
 
+## Receitas de uso (e o porquê)
+
+As três que mais valem no dia a dia com o AionUI TEAM:
+
+```bash
+combo-maestro audit --days 7
+```
+**Por quê:** um raio-x do TEAM num comando — quanto cada agente (Claude, Codex) rodou e gastou em token, quantas delegações passaram e quantas observações o memory do core já tem. Serve pra saber onde o trabalho (e o custo) está caindo antes de decidir o que delegar.
+
+```bash
+combo-maestro quota --days 1
+```
+**Por quê:** ver o **uso de hoje** por provider sem abrir nada. Separa token fresco do cache-read (que infla e engana) pra o número ser honesto. Complementa o statusline: o statusline mostra a **janela de 5h** (a que trava) em tempo real; o `quota` mostra o **acumulado**.
+
+```bash
+combo-maestro memory harvest --agent all --project-path .
+```
+**Por quê:** conhecimento durável (correção sua, decisão, fix confirmado) muitas vezes fica **só no chat** e some quando a sessão fecha. O harvest garimpa os transcripts do Claude **e do Codex**, te mostra os candidatos, e — com `--apply` — grava no memory nativo do core. É como o `DEV/WORKLOG` captura o projeto, mas para o que foi dito no chat e nunca foi escrito.
+
+> Regra comum das três: **o combo propõe, você aprova.** Nenhuma grava/delega sozinha; e nenhuma lê as tripas de outra ferramenta (o window dos outros LLMs fica no app do AionUI).
+
 ## Curadoria de worklog
 
 ```bash
@@ -264,7 +285,7 @@ O combo é agnóstico de UI: ele injeta regras no `~/.orquestrador`, que é a fo
 Peças em avaliação (abrir spec em `DEV/SPECS/` antes):
 
 - **Cross-agent harvest**: estender o harvest além do Claude Code para transcripts de Codex/Gemini/AionUI, unificando a síntese cross-sessão no memory do core.
-- **Window % dos outros providers**: só viável raspando o SQLite do AionUI (`node:sqlite`, frágil) — descartado por ora; o app do AionUI já mostra.
+- **Window % dos outros providers**: **investigado e descartado** — o SQLite do AionUI (`aionui-backend.db`) abre com `node:sqlite` (zero-dep), mas **não persiste** uso/window/token (as 34 tabelas só têm config, credenciais e health-check; conversations/messages ficam vazias). O window é vivo, da API, em memória. Fica no app do AionUI.
 
 ## Team audit — `combo-maestro audit`
 
